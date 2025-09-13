@@ -8,11 +8,18 @@ from PIL import Image, ImageDraw, ImageFont, ImageTk
 import shutil
 import tempfile
 import zipfile
+import sqlite3
+import subprocess
+import sys
+import platform
+from pathlib import Path
 
+# ============================================================
 # Costanti per colori e font
+# ============================================================
 BG_COLOR = "white"
-MENU_BG = "#ff0000"
-MENU_BTN_BG = "#c3ea03"
+MENU_BG = "#002fff"
+MENU_BTN_BG = "#03cbea"
 MENU_BTN_ACTIVE = "#0a84d5"
 FG_COLOR = "white"
 FONT_NORMAL = ("Segoe UI", 12)
@@ -26,6 +33,188 @@ FILE_NOTE = "note.json"
 FILE_STOCCAGGIO = "stoccaggio.json"
 FILE_BACKUP = "backup.zip"
 FILE_FATTURE = "fatture.json"
+
+# ============================================================
+# Classe ArchivioFatture (gestione DB e file)
+# ============================================================
+class ArchivioFatture:
+    def __init__(self, db_path="archivio_fatture.db", folder="documenti_fatture"):
+        self.db_path = db_path
+        self.folder = folder
+        os.makedirs(folder, exist_ok=True)
+        self._crea_db()
+
+    def _crea_db(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS fatture (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_file TEXT NOT NULL,
+                path TEXT NOT NULL,
+                tipo TEXT,
+                data_importazione TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+    def importa_documento(self, file_path):
+        if not os.path.exists(file_path):
+            raise FileNotFoundError("File non trovato!")
+
+        nome_file = os.path.basename(file_path)
+        tipo = os.path.splitext(file_path)[1].lower()
+        data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        destinazione = os.path.join(self.folder, nome_file)
+        base, ext = os.path.splitext(destinazione)
+        counter = 1
+        while os.path.exists(destinazione):
+            destinazione = f"{base}_{counter}{ext}"
+            counter += 1
+
+        shutil.copy2(file_path, destinazione)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("INSERT INTO fatture (nome_file, path, tipo, data_importazione) VALUES (?, ?, ?, ?)",
+                    (nome_file, destinazione, tipo, data))
+        conn.commit()
+        conn.close()
+
+    def lista_documenti(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT id, nome_file, tipo, data_importazione FROM fatture")
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+
+    def apri_documento(self, doc_id):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT path FROM fatture WHERE id=?", (doc_id,))
+        row = cur.fetchone()
+        conn.close()
+        if row and os.path.exists(row[0]):
+            if os.name == "nt":  # Windows
+                os.startfile(row[0])
+            elif sys.platform == "darwin":  # macOS
+                subprocess.call(("open", row[0]))
+            else:  # Linux
+                subprocess.call(("xdg-open", row[0]))
+        else:
+            raise FileNotFoundError("Documento non trovato!")
+
+    def elimina_documento(self, doc_id):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT path FROM fatture WHERE id=?", (doc_id,))
+        row = cur.fetchone()
+        if row and os.path.exists(row[0]):
+            os.remove(row[0])  # elimina il file
+        cur.execute("DELETE FROM fatture WHERE id=?", (doc_id,))
+        conn.commit()
+        conn.close()
+
+# ============================================================
+# Classe FattureFrame (interfaccia grafica con cerca/importa/elimina)
+# ============================================================
+class FattureFrame(ttk.Frame):
+    def __init__(self, parent, archivio: ArchivioFatture, logger=None):
+        super().__init__(parent)
+        self.archivio = archivio
+        self.logger = logger
+
+        # Bottoni (importa / apri / elimina)
+        frm_buttons = ttk.Frame(self)
+        frm_buttons.pack(fill="x", pady=5)
+
+        btn_importa = ttk.Button(frm_buttons, text="📂 Importa documento", command=self.importa_documento)
+        btn_importa.pack(side="left", padx=5)
+
+        btn_apri = ttk.Button(frm_buttons, text="🔍 Apri documento", command=self.apri_documento)
+        btn_apri.pack(side="left", padx=5)
+
+        btn_elimina = ttk.Button(frm_buttons, text="🗑️ Elimina documento", command=self.elimina_documento)
+        btn_elimina.pack(side="left", padx=5)
+
+        # Barra ricerca
+        frm_search = ttk.Frame(self)
+        frm_search.pack(fill="x", pady=5)
+        ttk.Label(frm_search, text="🔎 Cerca:").pack(side="left", padx=5)
+        self.var_search = tk.StringVar()
+        ent_search = ttk.Entry(frm_search, textvariable=self.var_search)
+        ent_search.pack(side="left", padx=5, fill="x", expand=True)
+        ent_search.bind("<KeyRelease>", lambda e: self.refresh_tree())  # ricerca live
+
+        # Tabella
+        self.tree = ttk.Treeview(self, columns=("ID", "Nome File", "Tipo", "Data"), show="headings")
+        for col in ("ID", "Nome File", "Tipo", "Data"):
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=150)
+        self.tree.pack(expand=True, fill="both", padx=10, pady=10)
+
+        self.refresh_tree()
+
+    def refresh_tree(self):
+        filtro = self.var_search.get().strip().lower() if hasattr(self, "var_search") else ""
+        self.tree.delete(*self.tree.get_children())
+        for row in self.archivio.lista_documenti():
+            if not filtro or filtro in str(row[1]).lower() or filtro in str(row[2]).lower() or filtro in str(row[3]).lower():
+                self.tree.insert("", "end", values=row)
+
+    def importa_documento(self):
+        path = filedialog.askopenfilename(title="Seleziona documento", filetypes=[("Tutti i file", "*.*")])
+        if not path:
+            return
+        try:
+            self.archivio.importa_documento(path)
+            self.refresh_tree()
+            if self.logger:
+                self.logger.log(f"Documento importato: {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", str(e))
+            if self.logger:
+                self.logger.log(f"Errore importazione documento: {e}")
+
+    def apri_documento(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona un documento prima di aprirlo.")
+            return
+        values = self.tree.item(selected[0])["values"]
+        doc_id = values[0]
+        try:
+            self.archivio.apri_documento(doc_id)
+            if self.logger:
+                self.logger.log(f"Aperto documento ID {doc_id}")
+        except Exception as e:
+            messagebox.showerror("Errore", str(e))
+            if self.logger:
+                self.logger.log(f"Errore apertura documento: {e}")
+
+    def elimina_documento(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona un documento da eliminare.")
+            return
+        values = self.tree.item(selected[0])["values"]
+        doc_id = values[0]
+        nome_file = values[1]
+        confirm = messagebox.askyesno("Conferma eliminazione", f"Vuoi eliminare '{nome_file}'?")
+        if not confirm:
+            return
+        try:
+            self.archivio.elimina_documento(doc_id)
+            self.refresh_tree()
+            if self.logger:
+                self.logger.log(f"Eliminato documento ID {doc_id} ({nome_file})")
+        except Exception as e:
+            messagebox.showerror("Errore", str(e))
+            if self.logger:
+                self.logger.log(f"Errore eliminazione documento: {e}")
 
 class LoggerFrame(ttk.Frame):
     def __init__(self, parent):
@@ -497,18 +686,21 @@ class MainApp(tk.Tk):
 
         container = ttk.Frame(self)
         container.pack(side="right", expand=True, fill="both")
-
         self.container = container
+
+        # Inizializza archivio fatture (gestione documenti)
+        self.archivio_fatture = ArchivioFatture()
 
         # Inizializza tutti i frame e nascondili
         self.frames["Clienti"] = BaseDataFrame(container, FILE_CLIENTI, ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
         self.frames["Prodotti"] = BaseDataFrame(container, FILE_PRODOTTI, ["Codice", "Descrizione", "Prezzo", "Quantità", "Data di Scadenza", "Fornitore"], self.logger)
         self.frames["Consegne"] = BaseDataFrame(container, FILE_CONSEGNE, ["Cliente", "Prodotto", "Data Consegna", "Quantità", "Comune", "Pagato si o no?", "Prezzo"], self.logger)
-        self.frames["Fatture"] = BaseDataFrame(container, FILE_FATTURE, ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
         self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Stoccaggio"] = StoccaggioFrame(container, self.logger)
         self.frames["Backup"] = BackupFrame(container, self.logger)
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
+        # QUI sostituiamo le fatture con il nuovo frame
+        self.frames["Fatture"] = FattureFrame(container, ArchivioFatture(), self.logger)
 
         for frame in self.frames.values():
             frame.place(relx=0, rely=0, relwidth=1, relheight=1)
@@ -538,6 +730,7 @@ class MainApp(tk.Tk):
         frame.lift()
         if self.logger:
             self.logger.log(f"Selezionato pannello: {name} 🔄")
+
 
 if __name__ == "__main__":
     app = MainApp()
