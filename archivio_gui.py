@@ -24,7 +24,7 @@ FILE_CLIENTI = "clienti.json"
 FILE_CONSEGNE = "consegne.json"
 FILE_PRODOTTI = "prodotti.json"
 FILE_NOTE = "note.json"
-FILE_STOCCAGGIO = "stoccaggio.json"
+FILE_STOCCAGGIO = "stoccaggi.json"
 FILE_BACKUP = "backup.zip"
 
 class LoggerFrame(ttk.Frame):
