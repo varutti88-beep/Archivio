@@ -1,0 +1,17 @@
+PRIMA VOLTA
+
+     init --> Inizia repository in locale
+
+PER "SALVARE"
+
+    git status --> Vedi cosa è stato modificato
+
+    git add . --> Aggiungi tutti i file per il salvataggio
+
+    git commit -m "<messaggio_qulasiasi>" --> Crei il salvataggio
+
+    git push origin main --> Pushi su GitHub tutte le modifiche
+
+PER RECUPERARE I SALVATAGGI
+    
+    git pull origin main --> Prende le modifiche da GitHub
