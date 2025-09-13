@@ -13,6 +13,8 @@ import subprocess
 import sys
 import platform
 from pathlib import Path
+import webbrowser
+
 
 # ============================================================
 # Costanti per colori e font
@@ -33,10 +35,58 @@ FILE_NOTE = "note.json"
 FILE_STOCCAGGIO = "stoccaggio.json"
 FILE_BACKUP = "backup.zip"
 FILE_FATTURE = "fatture.json"
+FILE_PRODUZIONE = "produzione.json"
 
-# ============================================================
-# Classe ArchivioFatture (gestione DB e file)
-# ============================================================
+def set_style(root):
+    style = ttk.Style(root)
+
+    # Usa un tema di base
+    style.theme_use("clam")
+
+    # Stile generico per i frame
+    style.configure("TFrame", background=BG_COLOR)
+
+    # Stile generico per le label
+    style.configure("TLabel", background=BG_COLOR, foreground="black", font=FONT_NORMAL)
+
+    # Stile per i bottoni
+    style.configure("TButton",
+                    background=MENU_BTN_BG,
+                    foreground="black",
+                    font=FONT_NORMAL,
+                    padding=6)
+    style.map("TButton",
+              background=[("active", MENU_BTN_ACTIVE)],
+              foreground=[("active", "white")])
+
+    # 🔹 Stile per le entry (qui eliminiamo lo sfondo bianco!)
+    style.configure("TEntry",
+                    fieldbackground=BG_COLOR,   # sfondo dentro la casella
+                    background=BG_COLOR,        # bordo
+                    foreground="black",         # colore testo
+                    insertcolor="black")        # colore cursore
+
+def bind_mousewheel(widget, target):
+    """
+    Permette di scorrere con la rotellina del mouse.
+    widget = quello che riceve l'evento (es. frame o tree)
+    target = la scrollbar o il widget scrollabile
+    """
+    def _on_mousewheel(event):
+        if event.delta:  # Windows e Mac
+            target.yview_scroll(int(-1*(event.delta/120)), "units")
+        else:  # Linux (usa Button-4 e Button-5)
+            if event.num == 4:
+                target.yview_scroll(-1, "units")
+            elif event.num == 5:
+                target.yview_scroll(1, "units")
+
+    # Associa eventi
+    widget.bind_all("<MouseWheel>", _on_mousewheel)
+    widget.bind_all("<Button-4>", _on_mousewheel)
+    widget.bind_all("<Button-5>", _on_mousewheel)
+
+
 class ArchivioFatture:
     def __init__(self, db_path="archivio_fatture.db", folder="documenti_fatture"):
         self.db_path = db_path
@@ -118,9 +168,6 @@ class ArchivioFatture:
         conn.commit()
         conn.close()
 
-# ============================================================
-# Classe FattureFrame (interfaccia grafica con cerca/importa/elimina)
-# ============================================================
 class FattureFrame(ttk.Frame):
     def __init__(self, parent, archivio: ArchivioFatture, logger=None):
         super().__init__(parent)
@@ -243,6 +290,43 @@ class BaseDataFrame(ttk.Frame):
         self.load_data()
         self.refresh_tree()
 
+        # Bind doppio click -> apre Google Maps
+        self.tree.bind("<Double-1>", self.on_double_click)
+
+    # ==============================
+    # Abilita scroll con la rotellina
+    # ==============================
+    def bind_mousewheel(self, widget, target):
+        def _on_mousewheel(event):
+            if event.delta:  # Windows/Mac
+                target.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            else:  # Linux (Button-4 e Button-5)
+                if event.num == 4:
+                    target.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    target.yview_scroll(1, "units")
+
+        widget.bind_all("<MouseWheel>", _on_mousewheel)
+        widget.bind_all("<Button-4>", _on_mousewheel)
+        widget.bind_all("<Button-5>", _on_mousewheel)
+
+    def on_double_click(self, event):
+        item_id = self.tree.selection()
+        if not item_id:
+            return
+        values = self.tree.item(item_id[0])["values"]
+
+        # Trova la colonna "Comune e indirizzo"
+        try:
+            col_index = self.columns.index("Comune e indirizzo")
+        except ValueError:
+            return
+
+        indirizzo = values[col_index]
+        if indirizzo:
+            url = f"https://www.google.com/maps/search/{indirizzo.replace(' ', '+')}"
+            webbrowser.open(url)
+
     def _create_widgets(self):
         frm_form = ttk.Frame(self)
         frm_form.pack(fill="x", padx=10, pady=10)
@@ -267,6 +351,8 @@ class BaseDataFrame(ttk.Frame):
         self.btn_edit.pack(side="left", padx=5)
         self.btn_delete = ttk.Button(frm_buttons, text="Elimina", command=self.delete_record)
         self.btn_delete.pack(side="left", padx=5)
+        self.btn_clear = ttk.Button(frm_buttons, text="🧹 Pulisci campi", command=self.clear_entries)
+        self.btn_clear.pack(side="left", padx=5)
 
         frm_import_export = ttk.Frame(self)
         frm_import_export.pack(fill="x", padx=10, pady=5)
@@ -285,15 +371,30 @@ class BaseDataFrame(ttk.Frame):
         ent_search.pack(side="left", fill="x", expand=True, padx=5)
         ent_search.bind("<KeyRelease>", lambda e: self.apply_filter())
 
-        # Treeview
-        self.tree = ttk.Treeview(self, columns=self.columns, show="headings", selectmode="browse")
+        # ============================
+        # Treeview + Scrollbar verticale
+        # ============================
+        tree_frame = ttk.Frame(self)
+        tree_frame.pack(expand=True, fill="both", padx=10, pady=10)
+
+        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical")
+        scrollbar.pack(side="right", fill="y")
+
+        self.tree = ttk.Treeview(
+            tree_frame, columns=self.columns, show="headings",
+            selectmode="browse", yscrollcommand=scrollbar.set
+        )
         for col in self.columns:
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor="w")
-        self.tree.pack(expand=True, fill="both", padx=10, pady=10)
-        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
 
-        # Label per Totale pagato o riscosso
+        self.tree.pack(side="left", expand=True, fill="both")
+        scrollbar.config(command=self.tree.yview)
+
+        # 🔹 Rotellina abilitata
+        self.bind_mousewheel(self.tree, self.tree)
+
+        # Label per Totale
         if self.file_path == FILE_PRODOTTI:
             self.lbl_totale_pagato = ttk.Label(self, text="Totale pagato: 0.00", font=FONT_BOLD)
             self.lbl_totale_pagato.pack(padx=10, pady=2, anchor="e")
@@ -420,7 +521,6 @@ class BaseDataFrame(ttk.Frame):
         try:
             df = pd.read_excel(path)
 
-            # Controlla colonne mancanti e avvisa
             missing_cols = [col for col in self.columns if col not in df.columns]
             if missing_cols:
                 messagebox.showwarning("Attenzione", f"Queste colonne mancano nel file Excel e saranno lasciate vuote: {', '.join(missing_cols)}")
@@ -447,7 +547,6 @@ class BaseDataFrame(ttk.Frame):
             return
         try:
             df = pd.DataFrame(self.data)
-            # Assicura che tutte le colonne ci siano nell'ordine giusto
             for col in self.columns:
                 if col not in df.columns:
                     df[col] = ""
@@ -458,6 +557,25 @@ class BaseDataFrame(ttk.Frame):
                 self.logger.log(f"Dati esportati in Excel: {path}")
         except Exception as e:
             messagebox.showerror("Errore", f"Errore durante esportazione:\n{e}")
+
+
+    def export_excel(self):
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.DataFrame(self.data)
+            for col in self.columns:
+                if col not in df.columns:
+                    df[col] = ""
+            df = df[self.columns]
+            df.to_excel(path, index=False)
+            messagebox.showinfo("Esportazione", f"Dati esportati con successo in:\n{path}")
+            if self.logger:
+                self.logger.log(f"Dati esportati in Excel: {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante esportazione:\n{e}")
+
 
 class NoteFrame(ttk.Frame):
     def __init__(self, parent, logger=None):
@@ -546,6 +664,7 @@ class BackupFrame(ttk.Frame):
             messagebox.showinfo("Importazione", "Backup importato correttamente.")
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile importare backup.\n{e}")
+            
 
 class EtichetteFrame(ttk.Frame):
     def __init__(self, parent, logger=None):
@@ -666,6 +785,134 @@ class EtichetteFrame(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Errore", f"Errore durante la stampa:\n{e}")
 
+class ProduzioneFrame(ttk.Frame):
+    def __init__(self, parent, file_path, logger=None):
+        super().__init__(parent)
+        self.file_path = file_path
+        self.logger = logger
+        self.data = []
+        self.filtered_data = []
+        self.current_selection_index = None
+
+        self._create_widgets()
+        self.load_data()
+        self.refresh_tree()
+
+    def _create_widgets(self):
+        # Form inserimento
+        frm_form = ttk.Frame(self)
+        frm_form.pack(fill="x", padx=10, pady=10)
+
+        self.entries = {}
+        fields = ["Cliente", "Lavoro", "Data Inizio", "Data Fine Prevista", "Quantità Totale", "Quantità Completata"]
+        for i, col in enumerate(fields):
+            ttk.Label(frm_form, text=col + ":", font=FONT_NORMAL).grid(row=i, column=0, sticky="w", pady=4)
+            ent = ttk.Entry(frm_form, font=FONT_NORMAL)
+            ent.grid(row=i, column=1, sticky="ew", pady=4)
+            self.entries[col] = ent
+        frm_form.columnconfigure(1, weight=1)
+
+        # Pulsanti
+        frm_buttons = ttk.Frame(self)
+        frm_buttons.pack(fill="x", padx=10, pady=5)
+        ttk.Button(frm_buttons, text="Aggiungi", command=self.add_record).pack(side="left", padx=5)
+        ttk.Button(frm_buttons, text="Modifica", command=self.edit_record).pack(side="left", padx=5)
+        ttk.Button(frm_buttons, text="Elimina", command=self.delete_record).pack(side="left", padx=5)
+
+        # Tabella
+        self.tree = ttk.Treeview(
+            self,
+            columns=["Cliente", "Lavoro", "Data Inizio", "Data Fine Prevista", "Quantità Totale", "Quantità Completata", "Avanzamento"],
+            show="headings",
+            selectmode="browse",
+            height=12
+        )
+        for col in ["Cliente", "Lavoro", "Data Inizio", "Data Fine Prevista", "Quantità Totale", "Quantità Completata", "Avanzamento"]:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, anchor="center", width=120)
+        self.tree.pack(expand=True, fill="both", padx=10, pady=10)
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+
+        # Stile Progressbar moderna
+        style = ttk.Style(self)
+        style.theme_use("default")
+        style.configure("green.Horizontal.TProgressbar", troughcolor="#E0E0E0", bordercolor="#E0E0E0",
+                        background="#4CAF50", lightcolor="#4CAF50", darkcolor="#388E3C")
+
+    def get_entries_data(self):
+        return {col: self.entries[col].get().strip() for col in self.entries}
+
+    def clear_entries(self):
+        for ent in self.entries.values():
+            ent.delete(0, tk.END)
+
+    def add_record(self):
+        self.data.append(self.get_entries_data())
+        self.save_data()
+        self.refresh_tree()
+        self.clear_entries()
+
+    def edit_record(self):
+        if self.current_selection_index is None:
+            return
+        self.data[self.current_selection_index] = self.get_entries_data()
+        self.save_data()
+        self.refresh_tree()
+        self.clear_entries()
+
+    def delete_record(self):
+        if self.current_selection_index is None:
+            return
+        del self.data[self.current_selection_index]
+        self.save_data()
+        self.refresh_tree()
+        self.clear_entries()
+
+    def load_data(self):
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.data = json.load(f)
+        else:
+            self.data = []
+
+    def save_data(self):
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, indent=2, ensure_ascii=False)
+
+    def refresh_tree(self):
+        self.tree.delete(*self.tree.get_children())
+        self.filtered_data = self.data
+        for item in self.filtered_data:
+            totale = int(item.get("Quantità Totale", 0) or 0)
+            completata = int(item.get("Quantità Completata", 0) or 0)
+            perc = int((completata / totale) * 100) if totale > 0 else 0
+
+            vals = [
+                item.get("Cliente", ""),
+                item.get("Lavoro", ""),
+                item.get("Data Inizio", ""),
+                item.get("Data Fine Prevista", ""),
+                totale,
+                completata,
+                f"{perc}%"
+            ]
+            self.tree.insert("", "end", values=vals)
+
+    def on_tree_select(self, _event):
+        selected = self.tree.selection()
+        if not selected:
+            self.current_selection_index = None
+            return
+        item = self.tree.item(selected[0])
+        values = item["values"]
+        self.current_selection_index = self.tree.index(selected[0])
+        for col, val in zip(self.entries.keys(), values):
+            self.entries[col].delete(0, tk.END)
+            self.entries[col].insert(0, val)
+
+
+
+# ================= MAIN APP CORRETTO =================
 
 class MainApp(tk.Tk):
     def __init__(self):
@@ -674,38 +921,58 @@ class MainApp(tk.Tk):
         self.geometry("1000x700")
         self.configure(bg=BG_COLOR)
 
+        # Applica lo stile personalizzato
+        set_style(self)
+
+        # Logger
         self.logger = LoggerFrame(self)
         self.logger.pack(side="bottom", fill="x")
 
-        self.menu_frame = ttk.Frame(self, padding=5)
+        # Menu laterale
+        self.menu_frame = ttk.Frame(self, padding=5, style="TFrame")
         self.menu_frame.pack(side="left", fill="y")
 
         self.frames = {}
 
+        # Bottoni menu
         self.create_menu_buttons()
 
-        container = ttk.Frame(self)
+        # Container centrale
+        container = ttk.Frame(self, style="TFrame")
         container.pack(side="right", expand=True, fill="both")
         self.container = container
 
         # Inizializza archivio fatture (gestione documenti)
         self.archivio_fatture = ArchivioFatture()
 
-        # Inizializza tutti i frame e nascondili
-        self.frames["Clienti"] = BaseDataFrame(container, FILE_CLIENTI, ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
-        self.frames["Prodotti"] = BaseDataFrame(container, FILE_PRODOTTI, ["Codice", "Descrizione", "Prezzo", "Quantità", "Data di Scadenza", "Fornitore"], self.logger)
-        self.frames["Consegne"] = BaseDataFrame(container, FILE_CONSEGNE, ["Cliente", "Prodotto", "Data Consegna", "Quantità", "Comune", "Pagato si o no?", "Prezzo"], self.logger)
+        # Inizializza tutti i frame
+        self.frames["Clienti"] = BaseDataFrame(container, FILE_CLIENTI,
+            ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
+
+        self.frames["Prodotti"] = BaseDataFrame(container, FILE_PRODOTTI,
+            ["Codice", "Descrizione", "Prezzo", "Quantità", "Data di Scadenza", "Fornitore"], self.logger)
+
+        self.frames["Consegne"] = BaseDataFrame(container, FILE_CONSEGNE,
+            ["Cliente", "Prodotto", "Data Consegna", "Quantità", "Comune e indirizzo",
+             "Pagato si o no?", "Prezzo"], self.logger)
+        
+        # QUI usiamo ProduzioneFrame (non più BaseDataFrame!)
+        self.frames["Produzione"] = ProduzioneFrame(container, FILE_PRODUZIONE, self.logger)
+
         self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Stoccaggio"] = StoccaggioFrame(container, self.logger)
         self.frames["Backup"] = BackupFrame(container, self.logger)
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
-        # QUI sostituiamo le fatture con il nuovo frame
-        self.frames["Fatture"] = FattureFrame(container, ArchivioFatture(), self.logger)
 
+        # Frame Fatture
+        self.frames["Fatture"] = FattureFrame(container, self.archivio_fatture, self.logger)
+
+        # Nascondi tutti i frame
         for frame in self.frames.values():
             frame.place(relx=0, rely=0, relwidth=1, relheight=1)
             frame.lower()
 
+        # Mostra il primo frame
         self.show_frame("Clienti")
 
     def create_menu_buttons(self):
@@ -717,10 +984,16 @@ class MainApp(tk.Tk):
             ("Stoccaggio", "📦"),
             ("Backup", "💾"),
             ("Etichette", "🏷️"),
-            ("Fatture", "🧾")
+            ("Fatture", "🧾"),
+            ("Produzione", "🏭")
         ]
         for name, emoji in btns:
-            btn = ttk.Button(self.menu_frame, text=f"{emoji} {name}", command=lambda n=name: self.show_frame(n))
+            btn = ttk.Button(
+                self.menu_frame,
+                text=f"{emoji} {name}",
+                command=lambda n=name: self.show_frame(n),
+                style="TButton"
+            )
             btn.pack(fill="x", pady=3)
 
     def show_frame(self, name):
