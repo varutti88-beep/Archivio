@@ -1,0 +1,34 @@
+[
+  {
+    "Nome": "gabriele",
+    "Descrizione": "",
+    "Data": "2025-07-20",
+    "Categoria": "",
+    "Quantità": 1,
+    "Prezzo Acquisto": 10.0
+  },
+  {
+    "Nome": "ggggg",
+    "Descrizione": "",
+    "Data": "2025-04-5",
+    "Categoria": "",
+    "Quantità": 5,
+    "Prezzo Acquisto": 60.0
+  },
+  {
+    "Nome": "gabrieel",
+    "Descrizione": "grissino bio",
+    "Data": "2025-12-23",
+    "Categoria": "",
+    "Quantità": 10,
+    "Prezzo Acquisto": 35.0
+  },
+  {
+    "Nome": "arin",
+    "Descrizione": "",
+    "Data": "2024-01-23",
+    "Categoria": "grissini",
+    "Quantità": 150,
+    "Prezzo Acquisto": 600.0
+  }
+]
