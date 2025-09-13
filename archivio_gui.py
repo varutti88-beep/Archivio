@@ -9,12 +9,11 @@ import shutil
 import tempfile
 import zipfile
 
-
 # Costanti per colori e font
 BG_COLOR = "white"
-MENU_BG = "#2980b9"
-MENU_BTN_BG = "#3498db"
-MENU_BTN_ACTIVE = "#1f618d"
+MENU_BG = "#ff0000"
+MENU_BTN_BG = "#c3ea03"
+MENU_BTN_ACTIVE = "#0a84d5"
 FG_COLOR = "white"
 FONT_NORMAL = ("Segoe UI", 12)
 FONT_BOLD = ("Segoe UI", 12, "bold")
@@ -24,8 +23,9 @@ FILE_CLIENTI = "clienti.json"
 FILE_CONSEGNE = "consegne.json"
 FILE_PRODOTTI = "prodotti.json"
 FILE_NOTE = "note.json"
-FILE_STOCCAGGIO = "stoccaggi.json"
+FILE_STOCCAGGIO = "stoccaggio.json"
 FILE_BACKUP = "backup.zip"
+FILE_FATTURE = "fatture.json"
 
 class LoggerFrame(ttk.Frame):
     def __init__(self, parent):
@@ -50,7 +50,6 @@ class BaseDataFrame(ttk.Frame):
         self.data = []
         self.filtered_data = []
         self.current_selection_index = None
-
         self._create_widgets()
         self.load_data()
         self.refresh_tree()
@@ -271,9 +270,6 @@ class BaseDataFrame(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Errore", f"Errore durante esportazione:\n{e}")
 
-
-
-
 class NoteFrame(ttk.Frame):
     def __init__(self, parent, logger=None):
         super().__init__(parent)
@@ -368,12 +364,11 @@ class EtichetteFrame(ttk.Frame):
         self.logger = logger
 
         self.fields = [
-            "Descrizione",
+            "Descrizione Prodotto",
             "Data Produzione",
             "Data Scadenza",
             "Lotto",
-            "Totale Sacchetti",
-            "Nome Cliente (opzionale)"
+            "Cliente"
         ]
 
         # Form con entry
@@ -509,6 +504,7 @@ class MainApp(tk.Tk):
         self.frames["Clienti"] = BaseDataFrame(container, FILE_CLIENTI, ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
         self.frames["Prodotti"] = BaseDataFrame(container, FILE_PRODOTTI, ["Codice", "Descrizione", "Prezzo", "Quantità", "Data di Scadenza", "Fornitore"], self.logger)
         self.frames["Consegne"] = BaseDataFrame(container, FILE_CONSEGNE, ["Cliente", "Prodotto", "Data Consegna", "Quantità", "Comune", "Pagato si o no?", "Prezzo"], self.logger)
+        self.frames["Fatture"] = BaseDataFrame(container, FILE_FATTURE, ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
         self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Stoccaggio"] = StoccaggioFrame(container, self.logger)
         self.frames["Backup"] = BackupFrame(container, self.logger)
@@ -528,7 +524,8 @@ class MainApp(tk.Tk):
             ("Note", "📝"),
             ("Stoccaggio", "📦"),
             ("Backup", "💾"),
-            ("Etichette", "🏷️")
+            ("Etichette", "🏷️"),
+            ("Fatture", "🧾")
         ]
         for name, emoji in btns:
             btn = ttk.Button(self.menu_frame, text=f"{emoji} {name}", command=lambda n=name: self.show_frame(n))
