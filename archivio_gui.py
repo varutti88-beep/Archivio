@@ -14,6 +14,9 @@ import sys
 import platform
 from pathlib import Path
 import webbrowser
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+from tkinter import ttk
 
 
 # ============================================================
@@ -25,7 +28,7 @@ MENU_BTN_BG = "#03cbea"
 MENU_BTN_ACTIVE = "#0a84d5"
 FG_COLOR = "white"
 FONT_NORMAL = ("Segoe UI", 12)
-FONT_BOLD = ("Segoe UI", 12, "bold")
+FONT_BOLD = ("Segoe UI", 15, "bold")
 
 # File JSON per salvataggio dati
 FILE_CLIENTI = "clienti.json"
@@ -910,42 +913,538 @@ class ProduzioneFrame(ttk.Frame):
             self.entries[col].delete(0, tk.END)
             self.entries[col].insert(0, val)
 
+    # -------------------------
+    # gl iimport li tengo qui perchè sto lavorando sul modulo clienti e mi va più comodo 
+    # -------------------------        
+import os
+import json
+import shutil
+import webbrowser
+from datetime import datetime
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+import pandas as pd
+import subprocess
+import sys
+import win32api
+import win32print
 
 
-# ================= MAIN APP CORRETTO =================
+class ClientiFrame(tb.Frame):
+    """
+    ClientiFrame completo:
+    - salva/carica clienti in JSON (default 'clienti.json')
+    - Import/Export Excel (schermata principale)
+    - popup dettagli cliente (header azzurro, documenti, note editabili, extra)
+    - documenti vengono copiati in una cartella locale per sicurezza
+    """
 
-class MainApp(tk.Tk):
+    def __init__(self, parent, logger=None, file_path="clienti.json", docs_folder="clienti_documenti"):
+        super().__init__(parent)
+        self.logger = logger
+        self.file_path = file_path
+        self.docs_folder = docs_folder
+        os.makedirs(self.docs_folder, exist_ok=True)
+
+        # colonne principali
+        self.fields = ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"]
+
+        # dati
+        self.clients = []
+        self.next_id = 1
+        self.sort_state = {}
+
+        # UI
+        title = tb.Label(self, text="👥 Gestione Clienti", font=("Segoe UI", 20, "bold"))
+        title.pack(fill="x", pady=(8, 6))
+
+        info_lbl = tb.Label(
+            self,
+            text="ℹ️ Doppio clic su Nome Cliente → apre dettagli | Doppio clic su Indirizzo/Comune → apre Google Maps",
+            font=("Segoe UI", 10, "italic"),
+            foreground="gray"
+        )
+        info_lbl.pack(fill="x", pady=(0, 8), padx=8)
+
+        main = tb.Frame(self)
+        main.pack(fill="both", expand=True, padx=10, pady=6)
+
+        # form a sinistra
+        frm_left = tb.Labelframe(main, text="Dati Cliente", padding=8, bootstyle=SECONDARY)
+        frm_left.pack(side="left", fill="y", padx=(0, 12))
+
+        self.entries = {}
+        for f in self.fields:
+            r = tb.Frame(frm_left)
+            r.pack(fill="x", pady=4)
+            tb.Label(r, text=f + ":", width=12, anchor="w").pack(side="left")
+            e = tb.Entry(r)
+            e.pack(side="left", fill="x", expand=True)
+            self.entries[f] = e
+
+        # azioni CRUD
+        btns = tb.Frame(frm_left)
+        btns.pack(fill="x", pady=(8, 0))
+        tb.Button(btns, text="➕ Aggiungi", bootstyle=SUCCESS, command=self.add_cliente).pack(fill="x", pady=3)
+        tb.Button(btns, text="✏️ Modifica", bootstyle=INFO, command=self.edit_cliente).pack(fill="x", pady=3)
+        tb.Button(btns, text="🗑️ Elimina", bootstyle=DANGER, command=self.del_cliente).pack(fill="x", pady=3)
+        tb.Button(btns, text="🧹 Pulisci campi", bootstyle=SECONDARY, command=self.clear_fields).pack(fill="x", pady=3)
+
+        tb.Separator(frm_left).pack(fill="x", pady=6)
+
+        tb.Button(btns, text="📥 Importa Excel", bootstyle=PRIMARY, command=self.import_excel).pack(fill="x", pady=3)
+        tb.Button(btns, text="📤 Esporta Excel", bootstyle=PRIMARY, command=self.export_excel).pack(fill="x", pady=3)
+
+        # area tabella principale
+        right = tb.Frame(main)
+        right.pack(side="right", fill="both", expand=True)
+
+        # ricerca
+        search = tb.Frame(right)
+        search.pack(fill="x", pady=(0, 6))
+        tb.Label(search, text="🔍 Cerca:").pack(side="left", padx=(0,6))
+        self.search_var = tb.StringVar()
+        ent_search = tb.Entry(search, textvariable=self.search_var, width=40)
+        ent_search.pack(side="left", padx=(6,0))
+        ent_search.bind("<KeyRelease>", self.filtra_clienti)
+
+        # treeview
+        self.tree = ttk.Treeview(right, columns=self.fields, show="headings", selectmode="browse")
+        for col in self.fields:
+            self.tree.heading(col, text=col, command=lambda c=col: self.sort_col(c))
+            self.tree.column(col, width=130, anchor="w")
+        self.tree.pack(fill="both", expand=True, side="left")
+
+        vsb = ttk.Scrollbar(right, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=vsb.set)
+        vsb.pack(side="right", fill="y")
+
+        self.tree.tag_configure('odd', background='#ffffff')
+        self.tree.tag_configure('even', background='#f7f9fb')
+
+        # bind eventi
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+        self.tree.bind("<Double-1>", self.on_tree_double_click)  # gestisce maps vs popup
+
+        # carica dati da file (se esistono)
+        self.load_clients()
+        self.populate_tree()
+
+    # ----------------------------
+    # file I/O
+    # ----------------------------
+    def load_clients(self):
+        try:
+            if os.path.exists(self.file_path):
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    self.clients = json.load(f)
+                # normalize missing fields
+                for c in self.clients:
+                    for key in ("documenti", "note", "extra"):
+                        if key not in c:
+                            c[key] = []
+                # next_id
+                ids = [c.get("id", 0) for c in self.clients]
+                self.next_id = max(ids) + 1 if ids else 1
+            else:
+                self.clients = []
+                self.next_id = 1
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore caricamento clienti:\n{e}")
+            self.clients = []
+            self.next_id = 1
+
+    def save_clients(self):
+        try:
+            with open(self.file_path, "w", encoding="utf-8") as f:
+                json.dump(self.clients, f, ensure_ascii=False, indent=2)
+            if self.logger:
+                self.logger.log(f"💾 Clienti salvati in {self.file_path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Impossibile salvare i clienti:\n{e}")
+
+    # ----------------------------
+    # popolamento UI
+    # ----------------------------
+    def populate_tree(self, filter_text=""):
+        self.tree.delete(*self.tree.get_children())
+        ft = (filter_text or "").lower().strip()
+        idx = 0
+        for c in self.clients:
+            combined = " ".join(str(c.get(col,"")) for col in self.fields).lower()
+            if ft and ft not in combined:
+                continue
+            tag = 'even' if idx % 2 == 0 else 'odd'
+            values = [c.get(col,"") for col in self.fields]
+            self.tree.insert("", "end", iid=str(c["id"]), values=values, tags=(tag,))
+            idx += 1
+
+    # ----------------------------
+    # selezione / CRUD
+    # ----------------------------
+    def on_tree_select(self, event=None):
+        sel = self.tree.selection()
+        if not sel:
+            return
+        iid = sel[0]
+        try:
+            cid = int(iid)
+        except:
+            return
+        client = next((x for x in self.clients if x.get("id")==cid), None)
+        if not client:
+            return
+        for col in self.fields:
+            self.entries[col].delete(0, "end")
+            self.entries[col].insert(0, client.get(col, ""))
+
+    def add_cliente(self):
+        vals = [self.entries[c].get().strip() for c in self.fields]
+        if not any(vals):
+            messagebox.showwarning("Attenzione", "Compila almeno un campo prima di aggiungere.")
+            return
+        client = {"id": self.next_id}
+        for i, col in enumerate(self.fields):
+            client[col] = vals[i] if i < len(vals) else ""
+        client.setdefault("documenti", [])
+        client.setdefault("note", [])
+        client.setdefault("extra", [])
+        self.clients.append(client)
+        self.next_id += 1
+        self.save_clients()
+        self.populate_tree(self.search_var.get())
+        self.clear_fields()
+        if self.logger: self.logger.log("➕ Cliente aggiunto")
+
+    def edit_cliente(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona un cliente da modificare.")
+            return
+        cid = int(sel[0])
+        client = next((x for x in self.clients if x["id"]==cid), None)
+        if not client:
+            return
+        for col in self.fields:
+            client[col] = self.entries[col].get().strip()
+        self.save_clients()
+        self.populate_tree(self.search_var.get())
+        self.clear_fields()
+        if self.logger: self.logger.log("✏️ Cliente modificato")
+
+    def del_cliente(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona un cliente da eliminare.")
+            return
+        if not messagebox.askyesno("Conferma", "Eliminare il cliente selezionato?"):
+            return
+        cid = int(sel[0])
+        # rimuove metadati (non eliminiamo per sicurezza i file fisici automaticamente)
+        self.clients = [c for c in self.clients if c["id"] != cid]
+        self.save_clients()
+        self.populate_tree(self.search_var.get())
+        self.clear_fields()
+        if self.logger: self.logger.log("🗑️ Cliente eliminato")
+
+    def clear_fields(self):
+        for e in self.entries.values():
+            e.delete(0, "end")
+        try:
+            self.tree.selection_remove(self.tree.selection())
+        except:
+            pass
+        if self.logger: self.logger.log("🧹 Campi puliti")
+
+    # ----------------------------
+    # ricerca / ordine
+    # ----------------------------
+    def filtra_clienti(self, event=None):
+        self.populate_tree(self.search_var.get())
+
+    def sort_col(self, col):
+        rev = self.sort_state.get(col, False)
+        self.clients.sort(key=lambda x: str(x.get(col,"")).lower(), reverse=rev)
+        self.sort_state[col] = not rev
+        self.populate_tree(self.search_var.get())
+
+    # ----------------------------
+    # doppio clic: maps vs popup
+    # ----------------------------
+    def on_tree_double_click(self, event):
+        # identifichiamo riga + colonna
+        rowid = self.tree.identify_row(event.y)
+        colid = self.tree.identify_column(event.x)
+        if not rowid:
+            return
+        cid = int(rowid)
+        client = next((x for x in self.clients if x["id"]==cid), None)
+        if not client:
+            return
+        # se ha cliccato sulla colonna Indirizzo o Comune -> apri maps
+        try:
+            col_index = int(colid.replace("#","")) - 1
+        except:
+            col_index = None
+        if col_index is not None and 0 <= col_index < len(self.fields):
+            cname = self.fields[col_index]
+            if cname in ("Indirizzo", "Comune"):
+                addr = f"{client.get('Indirizzo','')} {client.get('Comune','')}".strip()
+                if addr:
+                    url = "https://www.google.com/maps/search/" + addr.replace(" ", "+")
+                    webbrowser.open(url)
+                    if self.logger: self.logger.log(f"🌍 Aperto Maps per: {addr}")
+                    return
+        # altrimenti apri popup dettagliato
+        self.open_client_popup(client)
+
+    # ----------------------------
+    # excel import/export (principale)
+    # ----------------------------
+    def import_excel(self):
+        path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx *.xls")])
+        if not path:
+            return
+        try:
+            df = pd.read_excel(path)
+            # proviamo a mappare colonne, se esistono nomi identici li usiamo, altrimenti usiamo ordine
+            for _, row in df.iterrows():
+                vals = []
+                for col in self.fields:
+                    if col in df.columns:
+                        vals.append(str(row.get(col, "")))
+                    else:
+                        # fallback: if DataFrame has positional columns, use by position
+                        vals.append("")
+                # aggiunge cliente
+                client = {"id": self.next_id}
+                for i, col in enumerate(self.fields):
+                    client[col] = vals[i] if i < len(vals) else ""
+                client.setdefault("documenti", [])
+                client.setdefault("note", [])
+                client.setdefault("extra", [])
+                self.clients.append(client)
+                self.next_id += 1
+            self.save_clients()
+            self.populate_tree()
+            if self.logger: self.logger.log(f"⬆️ Importati clienti da {os.path.basename(path)}")
+            messagebox.showinfo("Import", "Import completato.")
+        except Exception as e:
+            messagebox.showerror("Errore import", str(e))
+
+    def export_excel(self):
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.DataFrame([{col: c.get(col,"") for col in self.fields} for c in self.clients])
+            df.to_excel(path, index=False)
+            if self.logger: self.logger.log(f"⬇️ Esportati clienti su {os.path.basename(path)}")
+            messagebox.showinfo("Export", "Esportazione completata.")
+        except Exception as e:
+            messagebox.showerror("Errore export", str(e))
+
+    # ----------------------------
+    # popup dettagli cliente (documenti / note / extra)
+    # ----------------------------
+    def open_client_popup(self, client):
+        popup = tb.Toplevel(self)
+        popup.title(f"Scheda Cliente - {client.get('Nome','')} {client.get('Cognome','')}")
+        
+        # dimensioni più grandi e minime
+        popup.geometry("1200x800")
+        popup.minsize(1100, 500)
+        popup.transient(self)
+        popup.grab_set()
+
+        # centra la finestra
+        popup.update_idletasks()
+        w = popup.winfo_width()
+        h = popup.winfo_height()
+        sw = popup.winfo_screenwidth()
+        sh = popup.winfo_screenheight()
+        x = (sw // 2) - (w // 2)
+        y = (sh // 2) - (h // 2)
+        popup.geometry(f"{w}x{h}+{x}+{y}")
+
+        # header azzurro
+        header = tk.Frame(popup, bg="#0d6efd")
+        header.pack(fill="x")
+        tk.Label(header, text=f"👤 {client.get('Nome','')} {client.get('Cognome','')}",
+                 font=("Segoe UI", 16, "bold"), fg="white", bg="#0d6efd").pack(side="left", padx=12, pady=12)
+        tk.Label(header, text=f"P.IVA: {client.get('P.IVA','')}", font=("Segoe UI", 10), fg="white", bg="#0d6efd")\
+            .pack(side="left", padx=8)
+
+        # pulsanti rapidi
+        quick = tb.Frame(popup)
+        quick.pack(fill="x", padx=10, pady=6)
+        tb.Button(quick, text="🌍 Maps", bootstyle=INFO,
+                  command=lambda: webbrowser.open("https://www.google.com/maps/search/" + f"{client.get('Indirizzo','')} {client.get('Comune','')}".replace(" ", "+"))
+                  ).pack(side="left", padx=6)
+        tb.Button(quick, text="✉️ Email", bootstyle=SUCCESS,
+                  command=lambda: webbrowser.open(f"mailto:{client.get('Email','')}")).pack(side="left", padx=6)
+        tb.Button(quick, text="📞 Telefono", bootstyle=WARNING,
+                  command=lambda: messagebox.showinfo("Telefono", f"Chiama: {client.get('Telefono','')}")).pack(side="left", padx=6)
+
+        # notebook
+        nb = tb.Notebook(popup)
+        nb.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # --- Info tab (dati statici) ---
+        tab_info = tb.Frame(nb)
+        nb.add(tab_info, text="📋 Info")
+        for r, col in enumerate(self.fields):
+            tb.Label(tab_info, text=f"{col}:", font=("Segoe UI", 10, "bold")).grid(row=r, column=0, sticky="w", padx=12, pady=6)
+            tb.Label(tab_info, text=client.get(col, ""), font=("Segoe UI", 10)).grid(row=r, column=1, sticky="w", padx=12, pady=6)
+
+                        # --- Documenti tab ---
+                # --- Documenti tab ---
+        tab_docs = tb.Frame(nb)
+        nb.add(tab_docs, text="📂 Documenti")
+
+        docs_cols = ("Data", "Nome", "Formato", "Percorso")
+        docs_tree = ttk.Treeview(tab_docs, columns=docs_cols, show="headings", height=10)
+        for c in docs_cols:
+            docs_tree.heading(c, text=c)
+            docs_tree.column(c, width=200)
+        docs_tree.pack(fill="both", expand=True, side="left", padx=(10, 0), pady=8)
+
+        docs_sb = ttk.Scrollbar(tab_docs, orient="vertical", command=docs_tree.yview)
+        docs_tree.configure(yscroll=docs_sb.set)
+        docs_sb.pack(side="right", fill="y")
+
+        # popola documenti
+        for d in client.get("documenti", []):
+            docs_tree.insert("", "end", values=(d.get("data", ""), d.get("nome", ""), d.get("formato", ""), d.get("path", "")))
+
+        # funzioni documenti
+        def import_doc_local():
+            path = filedialog.askopenfilename()
+            if not path:
+                return
+            try:
+                nome = os.path.basename(path)
+                fmt = os.path.splitext(nome)[1].lstrip(".").lower()
+                data_s = datetime.now().strftime("%Y-%m-%d %H:%M")
+                dest_name = f"{client['id']}_{int(datetime.now().timestamp())}_{nome}"
+                dest_path = os.path.join(self.docs_folder, dest_name)
+                shutil.copy2(path, dest_path)
+                doc = {"data": data_s, "nome": nome, "formato": fmt, "path": dest_path}
+                client.setdefault("documenti", []).append(doc)
+                docs_tree.insert("", "end", values=(doc["data"], doc["nome"], doc["formato"], doc["path"]))
+                self.save_clients()
+                if self.logger: 
+                    self.logger.log(f"📥 Documento importato per {client.get('Nome','')}: {nome}")
+            except Exception as e:
+                messagebox.showerror("Errore import", str(e))
+
+        def open_doc_local():
+            sel = docs_tree.selection()
+            if not sel:
+                messagebox.showwarning("Attenzione", "Seleziona un documento.")
+                return
+            path = docs_tree.item(sel[0])["values"][3]
+            if not path or not os.path.exists(path):
+                messagebox.showerror("Errore", "File non trovato.")
+                return
+            try:
+                if os.name == "nt":
+                    os.startfile(path)
+                elif sys.platform == "darwin":
+                    os.system(f"open \"{path}\"")
+                else:
+                    os.system(f'xdg-open "{path}"')
+            except Exception as e:
+                messagebox.showerror("Errore apertura", str(e))
+
+        def export_doc_local():
+            sel = docs_tree.selection()
+            if not sel:
+                messagebox.showwarning("Attenzione", "Seleziona un documento da esportare.")
+                return
+            src = docs_tree.item(sel[0])["values"][3]
+            if not src or not os.path.exists(src):
+                messagebox.showerror("Errore", "File sorgente non trovato.")
+                return
+            target = filedialog.asksaveasfilename(initialfile=docs_tree.item(sel[0])["values"][1])
+            if not target:
+                return
+            try:
+                shutil.copy2(src, target)
+                messagebox.showinfo("Esporta", f"Documento salvato in: {target}")
+            except Exception as e:
+                messagebox.showerror("Errore export", str(e))
+
+        def del_doc_local():
+            sel = docs_tree.selection()
+            if not sel:
+                messagebox.showwarning("Attenzione", "Seleziona un documento da eliminare.")
+                return
+            if not messagebox.askyesno("Conferma", "Eliminare il documento selezionato?"):
+                return
+            vals = docs_tree.item(sel[0])["values"]
+            client["documenti"] = [d for d in client.get("documenti", []) 
+                                   if not (d.get("data") == vals[0] and d.get("nome") == vals[1])]
+            try:
+                if os.path.exists(vals[3]) and os.path.commonpath(
+                    [os.path.abspath(vals[3]), os.path.abspath(self.docs_folder)]
+                ) == os.path.abspath(self.docs_folder):
+                    os.remove(vals[3])
+            except Exception:
+                pass
+            docs_tree.delete(sel[0])
+            self.save_clients()
+            if self.logger: 
+                self.logger.log("🗑️ Documento eliminato")
+
+        # bottoni documenti
+        docs_btns = tb.Frame(tab_docs)
+        docs_btns.pack(fill="y", padx=10, pady=(0, 8), side="right")
+
+        tb.Button(docs_btns, text="📥 Importa documento", bootstyle=INFO, command=import_doc_local).pack(fill="x", pady=4)
+        tb.Button(docs_btns, text="📤 Esporta documento", bootstyle=PRIMARY, command=export_doc_local).pack(fill="x", pady=4)
+        tb.Button(docs_btns, text="📂 Apri documento", bootstyle=SECONDARY, command=open_doc_local).pack(fill="x", pady=4)
+        tb.Button(docs_btns, text="🗑️ Elimina documento", bootstyle=DANGER, command=del_doc_local).pack(fill="x", pady=4)
+
+
+
+class MainApp(tb.Window):
     def __init__(self):
-        super().__init__()
+        super().__init__(themename="darkly")  # altri temi: "cosmo", "solar", "flatly", "cyborg"...
         self.title("Archivio aziendale – Produzione Varutti Gabriele – Vietata la copia")
-        self.geometry("1000x700")
-        self.configure(bg=BG_COLOR)
+        self.geometry("1100x750")
+        self.resizable(True, True)
 
-        # Applica lo stile personalizzato
-        set_style(self)
-
-        # Logger
+        # Logger in basso (senza bootstyle, perché LoggerFrame non lo supporta)
         self.logger = LoggerFrame(self)
         self.logger.pack(side="bottom", fill="x")
 
-        # Menu laterale
-        self.menu_frame = ttk.Frame(self, padding=5, style="TFrame")
+        # Frame laterale menu
+        self.menu_frame = ttk.Frame(self, padding=10)
         self.menu_frame.pack(side="left", fill="y")
 
+        # Container centrale
+        container = ttk.Frame(self)
+        container.pack(side="right", expand=True, fill="both")
+        self.container = container
+
+        # Archivio fatture
+        self.archivio_fatture = ArchivioFatture()
+
+        # Dizionario con tutti i frame
         self.frames = {}
+        self.init_frames(container)
 
         # Bottoni menu
         self.create_menu_buttons()
 
-        # Container centrale
-        container = ttk.Frame(self, style="TFrame")
-        container.pack(side="right", expand=True, fill="both")
-        self.container = container
+        # Mostra primo frame
+        self.show_frame("Clienti")
 
-        # Inizializza archivio fatture (gestione documenti)
-        self.archivio_fatture = ArchivioFatture()
-
-        # Inizializza tutti i frame
+    def init_frames(self, container):
+        """Inizializza tutti i frame"""
         self.frames["Clienti"] = BaseDataFrame(container, FILE_CLIENTI,
             ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
 
@@ -955,46 +1454,44 @@ class MainApp(tk.Tk):
         self.frames["Consegne"] = BaseDataFrame(container, FILE_CONSEGNE,
             ["Cliente", "Prodotto", "Data Consegna", "Quantità", "Comune e indirizzo",
              "Pagato si o no?", "Prezzo"], self.logger)
-        
-        # QUI usiamo ProduzioneFrame (non più BaseDataFrame!)
-        self.frames["Produzione"] = ProduzioneFrame(container, FILE_PRODUZIONE, self.logger)
 
+        self.frames["Produzione"] = ProduzioneFrame(container, FILE_PRODUZIONE, self.logger)
         self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Stoccaggio"] = StoccaggioFrame(container, self.logger)
         self.frames["Backup"] = BackupFrame(container, self.logger)
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
-
-        # Frame Fatture
         self.frames["Fatture"] = FattureFrame(container, self.archivio_fatture, self.logger)
+        self.frames["Clienti"] = ClientiFrame(container, self.logger)
+
 
         # Nascondi tutti i frame
         for frame in self.frames.values():
             frame.place(relx=0, rely=0, relwidth=1, relheight=1)
             frame.lower()
 
-        # Mostra il primo frame
-        self.show_frame("Clienti")
-
     def create_menu_buttons(self):
+        """Crea i pulsanti del menu laterale con icone ed effetto hover"""
         btns = [
             ("Clienti", "👥"),
             ("Prodotti", "📦"),
             ("Consegne", "🚚"),
             ("Note", "📝"),
-            ("Stoccaggio", "📦"),
+            ("Stoccaggio", "🏗️"),
             ("Backup", "💾"),
             ("Etichette", "🏷️"),
             ("Fatture", "🧾"),
             ("Produzione", "🏭")
         ]
+
         for name, emoji in btns:
-            btn = ttk.Button(
+            btn = tb.Button(
                 self.menu_frame,
                 text=f"{emoji} {name}",
-                command=lambda n=name: self.show_frame(n),
-                style="TButton"
+                bootstyle=INFO,  # colore moderno
+                width=18,
+                command=lambda n=name: self.show_frame(n)
             )
-            btn.pack(fill="x", pady=3)
+            btn.pack(fill="x", pady=4)
 
     def show_frame(self, name):
         for frame in self.frames.values():
@@ -1002,9 +1499,10 @@ class MainApp(tk.Tk):
         frame = self.frames[name]
         frame.lift()
         if self.logger:
-            self.logger.log(f"Selezionato pannello: {name} 🔄")
+            self.logger.log(f"🔄 Selezionato pannello: {name}")
 
 
 if __name__ == "__main__":
     app = MainApp()
     app.mainloop()
+    
