@@ -1,0 +1,2 @@
+PySide6>=6.5
+bcrypt>=4.0
