@@ -1,0 +1,49 @@
+QWidget {
+    background: #ffffffff;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial;
+    font-size: 12pt;
+    color: #333;
+}
+
+#card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 360px;
+    max-width: 420px;
+    box-shadow: 0px 4px 18px rgba(0,0,0,0.12);
+}
+
+QLabel#title {
+    font-size: 20pt;
+    font-weight: bold;
+    margin: 10px 0 20px 0;
+    color: #2b6fb4;
+}
+
+QLineEdit {
+    background: #fff;
+    border: 1px solid #ccd0d5;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 2px;
+}
+
+QPushButton {
+    background: #2b6fb4;
+    color: white;
+    border-radius: 8px;
+    padding: 10px;
+    font-weight: 500;
+}
+
+QPushButton:hover {
+    background: #1f4f82;
+}
+
+QPushButton[secondary="true"] {
+    background: transparent;
+    color: #2b6fb4;
+    border: none;
+    text-decoration: underline;
+}
