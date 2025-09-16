@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "Cliente": "io",
+    "Prodotto": "io",
+    "DataConsegna": "20.05.2025",
+    "Quantità": "100",
+    "Comune": "resiutta",
+    "Indirizzo": "via nazionale 59"
+  },
+  {
+    "Cliente": "io",
+    "Prodotto": "io",
+    "DataConsegna": "20.05.2025",
+    "Quantità": "100",
+    "Comune": "tolmezzo",
+    "Indirizzo": "via roma 20"
+  },
+  {
+    "Cliente": "io",
+    "Prodotto": "io",
+    "DataConsegna": "20.05.2025",
+    "Quantità": "255",
+    "Comune": "gemona",
+    "Indirizzo": "via roma 6"
+  }
+]

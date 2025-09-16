@@ -15,3 +15,4 @@ PER "SALVARE"
 PER RECUPERARE I SALVATAGGI
     
     git pull origin main --> Prende le modifiche da GitHub
+

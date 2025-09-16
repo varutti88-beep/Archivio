@@ -614,15 +614,190 @@ class NoteFrame(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile salvare note.\n{e}")
 
-class StoccaggioFrame(BaseDataFrame):
-    def __init__(self, parent, logger=None):
-        columns = ["Descrizione", "Data Produzione", "Data Scadenza", "Lotto"]
-        super().__init__(parent, FILE_STOCCAGGIO, columns, logger)
+class StoccaggioFrame(tb.Frame):
+    def __init__(self, parent, logger=None, file_path="stoccaggio.json"):
+        super().__init__(parent)
+        self.logger = logger
+        self.file_path = file_path
+        self.stoccaggi = []
+
+        # campi principali
+        self.fields = ["Descrizione", "DataProduzione", "DataScadenza", "Lotto", "NumeroScatola"]
+
+        # titolo
+        title = tb.Label(self, text="📦 Gestione Stoccaggio", font=("Segoe UI", 20, "bold"))
+        title.pack(fill="x", pady=(8, 6))
+
+        main = tb.Frame(self)
+        main.pack(fill="both", expand=True, padx=10, pady=6)
+
+        # form a sinistra
+        frm_left = tb.Labelframe(main, text="Dati Stoccaggio", padding=8, bootstyle=SECONDARY)
+        frm_left.pack(side="left", fill="y", padx=(0, 12))
+
+        self.entries = {}
+        for f in self.fields:
+            r = tb.Frame(frm_left)
+            r.pack(fill="x", pady=4)
+            tb.Label(r, text=f + ":", width=14, anchor="w").pack(side="left")
+            e = tb.Entry(r, bootstyle="secondary")  # usa solo bootstyle, non Style globale
+            e.pack(side="left", fill="x", expand=True)
+            self.entries[f] = e
+
+        # pulsanti CRUD + Import/Export
+        btns = tb.Frame(frm_left)
+        btns.pack(fill="x", pady=(8, 0))
+        tb.Button(btns, text="➕ Aggiungi", bootstyle=SUCCESS, command=self.add_stoccaggio).pack(fill="x", pady=3)
+        tb.Button(btns, text="✏️ Modifica", bootstyle=INFO, command=self.edit_stoccaggio).pack(fill="x", pady=3)
+        tb.Button(btns, text="🗑️ Elimina", bootstyle=DANGER, command=self.del_stoccaggio).pack(fill="x", pady=3)
+        tb.Button(btns, text="🧹 Pulisci campi", bootstyle=SECONDARY, command=self.clear_fields).pack(fill="x", pady=3)
+
+        tb.Separator(frm_left).pack(fill="x", pady=6)
+
+        tb.Button(btns, text="📥 Importa Excel", bootstyle=PRIMARY, command=self.import_excel).pack(fill="x", pady=3)
+        tb.Button(btns, text="📤 Esporta Excel", bootstyle=PRIMARY, command=self.export_excel).pack(fill="x", pady=3)
+
+        # tabella a destra
+        right = tb.Frame(main)
+        right.pack(side="right", fill="both", expand=True)
+
+        self.tree = ttk.Treeview(right, columns=self.fields, show="headings", selectmode="browse")
+        for col in self.fields:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=120, anchor="w")
+        self.tree.pack(fill="both", expand=True, side="left")
+
+        vsb = ttk.Scrollbar(right, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=vsb.set)
+        vsb.pack(side="right", fill="y")
+
+        # colori righe alternate
+        self.tree.tag_configure('odd', background='#ffffff')
+        self.tree.tag_configure('even', background='#f7f9fb')
+
+        # eventi
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+
+        # carica dati iniziali
+        self.load_stoccaggi()
+        self.populate_tree()
+
+    # ---------------- IMPORT / EXPORT EXCEL ----------------
+    def import_excel(self):
+        path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.read_excel(path)
+            self.stoccaggi = df.to_dict(orient="records")
+            self.save_stoccaggi()
+            self.populate_tree()
+            messagebox.showinfo("Import Excel", "Stoccaggi importati correttamente.")
+            if self.logger:
+                self.logger.log(f"Importati stoccaggi da {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante l'importazione Excel:\n{e}")
+
+    def export_excel(self):
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                            filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.DataFrame(self.stoccaggi)
+            df.to_excel(path, index=False)
+            messagebox.showinfo("Export Excel", f"Stoccaggi esportati in {path}")
+            if self.logger:
+                self.logger.log(f"Esportati stoccaggi in {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante l'esportazione Excel:\n{e}")
+
+    # ---------------- CRUD ----------------
+    def add_stoccaggio(self):
+        data = {f: self.entries[f].get() for f in self.fields}
+        if not data["Descrizione"] or not data["Lotto"]:
+            messagebox.showwarning("Attenzione", "Inserisci almeno Descrizione e Lotto")
+            return
+        self.stoccaggi.append(data)
+        self.save_stoccaggi()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Stoccaggio aggiunto: {data['Descrizione']} - Lotto {data['Lotto']}")
+
+    def edit_stoccaggio(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona uno stoccaggio da modificare")
+            return
+        index = self.tree.index(sel[0])
+        data = {f: self.entries[f].get() for f in self.fields}
+        self.stoccaggi[index] = data
+        self.save_stoccaggi()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Stoccaggio modificato: {data['Descrizione']} - Lotto {data['Lotto']}")
+
+    def del_stoccaggio(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona uno stoccaggio da eliminare")
+            return
+        index = self.tree.index(sel[0])
+        stoccaggio = self.stoccaggi.pop(index)
+        self.save_stoccaggi()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Stoccaggio eliminato: {stoccaggio['Descrizione']} - Lotto {stoccaggio['Lotto']}")
+
+    # ---------------- SUPPORTO ----------------
+    def clear_fields(self):
+        for f in self.fields:
+            self.entries[f].delete(0, tk.END)
+
+    def on_tree_select(self, event=None):
+        sel = self.tree.selection()
+        if not sel:
+            return
+        item = self.tree.item(sel[0])
+        values = item["values"]
+        for i, f in enumerate(self.fields):
+            self.entries[f].delete(0, tk.END)
+            self.entries[f].insert(0, values[i])
+
+    def populate_tree(self):
+        self.tree.delete(*self.tree.get_children())
+        for i, s in enumerate(self.stoccaggi):
+            values = [s.get(f, "") for f in self.fields]
+            tag = 'even' if i % 2 == 0 else 'odd'
+            self.tree.insert("", "end", values=values, tags=(tag,))
+
+    def load_stoccaggi(self):
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.stoccaggi = json.load(f)
+            for s in self.stoccaggi:
+                for f in self.fields:
+                    if f not in s:
+                        s[f] = ""
+        else:
+            self.stoccaggi = []
+
+    def save_stoccaggi(self):
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(self.stoccaggi, f, indent=2, ensure_ascii=False)
+
 
 class BackupFrame(ttk.Frame):
     def __init__(self, parent, logger=None):
         super().__init__(parent)
         self.logger = logger
+        self.config_file = "backup_config.json"
+        self.log_file = "backup_log.json"
+        self.load_config()
+        self.load_log()
 
         lbl_info = ttk.Label(self, text="Backup dati archivio", font=FONT_BOLD)
         lbl_info.pack(pady=10)
@@ -636,21 +811,96 @@ class BackupFrame(ttk.Frame):
         btn_import = ttk.Button(frm_buttons, text="Importa Backup ZIP", command=self.import_backup)
         btn_import.pack(side="left", padx=5)
 
+        btn_cartella = ttk.Button(frm_buttons, text="📂 Scegli cartella backup", command=self.choose_folder)
+        btn_cartella.pack(side="left", padx=5)
+
+        # Intervallo backup
+        frm_schedule = ttk.Frame(self)
+        frm_schedule.pack(pady=10)
+        ttk.Label(frm_schedule, text="Intervallo automatico (minuti):").pack(side="left")
+        self.var_interval = tk.IntVar(value=self.config.get("interval", 60))
+        ent_interval = ttk.Entry(frm_schedule, textvariable=self.var_interval, width=6)
+        ent_interval.pack(side="left", padx=5)
+        ttk.Button(frm_schedule, text="Avvia automatico", command=self.start_auto_backup).pack(side="left", padx=5)
+        ttk.Button(frm_schedule, text="Ferma", command=self.stop_auto_backup).pack(side="left", padx=5)
+
         self.lbl_status = ttk.Label(self, text="", font=FONT_NORMAL)
         self.lbl_status.pack(pady=10)
 
+        # 🔹 Storico backup
+        lbl_storico = ttk.Label(self, text="Storico Backup:", font=FONT_BOLD)
+        lbl_storico.pack(pady=(10, 5))
+
+        cols = ("#", "Data e ora", "Percorso")
+        self.tree = ttk.Treeview(self, columns=cols, show="headings", height=8)
+        for col in cols:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=200 if col != "#" else 50, anchor="center")
+        self.tree.pack(expand=True, fill="both", padx=10, pady=5)
+
+        self.refresh_log()
+
+        self.job = None  # per gestire il ciclo after()
+
+    # ---------------- CONFIG ----------------
+    def load_config(self):
+        if os.path.exists(self.config_file):
+            with open(self.config_file, "r", encoding="utf-8") as f:
+                self.config = json.load(f)
+        else:
+            self.config = {"folder": os.getcwd(), "interval": 60}
+
+    def save_config(self):
+        with open(self.config_file, "w", encoding="utf-8") as f:
+            json.dump(self.config, f, indent=2)
+
+    # ---------------- LOG ----------------
+    def load_log(self):
+        if os.path.exists(self.log_file):
+            with open(self.log_file, "r", encoding="utf-8") as f:
+                self.log = json.load(f)
+        else:
+            self.log = []
+
+    def save_log(self):
+        with open(self.log_file, "w", encoding="utf-8") as f:
+            json.dump(self.log, f, indent=2)
+
+    def refresh_log(self):
+        self.tree.delete(*self.tree.get_children())
+        for idx, entry in enumerate(self.log, start=1):
+            self.tree.insert("", "end", values=(idx, entry["time"], entry["path"]))
+
+    def add_log(self, path):
+        entry = {
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "path": path
+        }
+        self.log.append(entry)
+        self.save_log()
+        self.refresh_log()
+
+    # ---------------- BACKUP ----------------
+    def choose_folder(self):
+        folder = filedialog.askdirectory()
+        if folder:
+            self.config["folder"] = folder
+            self.save_config()
+            self.lbl_status.config(text=f"Cartella backup: {folder}")
+
     def create_backup(self):
-        path = filedialog.asksaveasfilename(defaultextension=".zip", filetypes=[("ZIP files", "*.zip")])
-        if not path:
-            return
+        folder = self.config.get("folder", os.getcwd())
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip")
         try:
             with zipfile.ZipFile(path, 'w') as backup_zip:
                 for file in [FILE_CLIENTI, FILE_CONSEGNE, FILE_PRODOTTI, FILE_NOTE, FILE_STOCCAGGIO]:
                     if os.path.exists(file):
                         backup_zip.write(file)
             self.lbl_status.config(text=f"Backup creato: {path}")
+            self.add_log(path)  # 🔹 aggiungi allo storico
             if self.logger:
-                self.logger.log("Backup creato con successo. 🗃️")
+                self.logger.log(f"Backup creato in {path} 🗃️")
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile creare backup.\n{e}")
 
@@ -667,6 +917,25 @@ class BackupFrame(ttk.Frame):
             messagebox.showinfo("Importazione", "Backup importato correttamente.")
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile importare backup.\n{e}")
+
+    # ---------------- AUTO BACKUP ----------------
+    def start_auto_backup(self):
+        interval_ms = self.var_interval.get() * 60 * 1000
+        self.config["interval"] = self.var_interval.get()
+        self.save_config()
+        self._schedule_backup(interval_ms)
+        self.lbl_status.config(text=f"Backup automatico ogni {self.var_interval.get()} minuti avviato ⏱️")
+
+    def _schedule_backup(self, interval_ms):
+        self.create_backup()
+        self.job = self.after(interval_ms, lambda: self._schedule_backup(interval_ms))
+
+    def stop_auto_backup(self):
+        if self.job:
+            self.after_cancel(self.job)
+            self.job = None
+            self.lbl_status.config(text="Backup automatico fermato ⛔")
+
             
 
 class EtichetteFrame(ttk.Frame):
@@ -914,7 +1183,7 @@ class ProduzioneFrame(ttk.Frame):
             self.entries[col].insert(0, val)
 
     # -------------------------
-    # gl iimport li tengo qui perchè sto lavorando sul modulo clienti e mi va più comodo 
+    # gl import li tengo qui perchè sto lavorando sul modulo clienti e mi va più comodo 
     # -------------------------        
 import os
 import json
@@ -948,6 +1217,17 @@ class ClientiFrame(tb.Frame):
         self.docs_folder = docs_folder
         os.makedirs(self.docs_folder, exist_ok=True)
 
+        # 🔹 Stile personalizzato per Entry dei clienti
+        style = ttk.Style()
+        style.theme_use("clam")  # usiamo clam per permettere override
+        style.configure(
+            "ClientEntry.TEntry",
+            fieldbackground="#d9d9d9",  # sfondo interno
+            background="#d9d9d9",       # bordo
+            foreground="black",         # testo
+            insertcolor="black"         # cursore
+        )
+
         # colonne principali
         self.fields = ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"]
 
@@ -980,8 +1260,11 @@ class ClientiFrame(tb.Frame):
             r = tb.Frame(frm_left)
             r.pack(fill="x", pady=4)
             tb.Label(r, text=f + ":", width=12, anchor="w").pack(side="left")
-            e = tb.Entry(r)
+
+            # 🔹 Entry con stile grigio personalizzato
+            e = ttk.Entry(r, style="ClientEntry.TEntry")
             e.pack(side="left", fill="x", expand=True)
+
             self.entries[f] = e
 
         # azioni CRUD
@@ -1026,11 +1309,12 @@ class ClientiFrame(tb.Frame):
 
         # bind eventi
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
-        self.tree.bind("<Double-1>", self.on_tree_double_click)  # gestisce maps vs popup
+        self.tree.bind("<Double-1>", self.on_tree_double_click)
 
         # carica dati da file (se esistono)
         self.load_clients()
         self.populate_tree()
+
 
     # ----------------------------
     # file I/O
@@ -1408,11 +1692,430 @@ class ClientiFrame(tb.Frame):
         tb.Button(docs_btns, text="📂 Apri documento", bootstyle=SECONDARY, command=open_doc_local).pack(fill="x", pady=4)
         tb.Button(docs_btns, text="🗑️ Elimina documento", bootstyle=DANGER, command=del_doc_local).pack(fill="x", pady=4)
 
+class ProdottiFrame(tb.Frame):
+    def __init__(self, parent, logger=None, file_path="prodotti.json"):
+        super().__init__(parent)
+        self.logger = logger
+        self.file_path = file_path
+        self.products = []
+
+        # colonne
+        self.fields = ["Codice", "Descrizione", "Prezzo", "Quantità", "DataScadenza", "Fornitore"]
+
+        # titolo
+        title = tb.Label(self, text="📦 Gestione Prodotti", font=("Segoe UI", 20, "bold"))
+        title.pack(fill="x", pady=(8, 6))
+
+        main = tb.Frame(self)
+        main.pack(fill="both", expand=True, padx=10, pady=6)
+
+        # form a sinistra
+        frm_left = tb.Labelframe(main, text="Dati Prodotto", padding=8, bootstyle=SECONDARY)
+        frm_left.pack(side="left", fill="y", padx=(0, 12))
+
+        self.entries = {}
+        for f in self.fields:
+            r = tb.Frame(frm_left)
+            r.pack(fill="x", pady=4)
+            tb.Label(r, text=f + ":", width=14, anchor="w").pack(side="left")
+            e = tb.Entry(r)
+            e.pack(side="left", fill="x", expand=True)
+            self.entries[f] = e
+
+        # pulsanti CRUD
+        btns = tb.Frame(frm_left)
+        btns.pack(fill="x", pady=(8, 0))
+        tb.Button(btns, text="➕ Aggiungi", bootstyle=SUCCESS, command=self.add_prodotto).pack(fill="x", pady=3)
+        tb.Button(btns, text="✏️ Modifica", bootstyle=INFO, command=self.edit_prodotto).pack(fill="x", pady=3)
+        tb.Button(btns, text="🗑️ Elimina", bootstyle=DANGER, command=self.del_prodotto).pack(fill="x", pady=3)
+        tb.Button(btns, text="🧹 Pulisci campi", bootstyle=SECONDARY, command=self.clear_fields).pack(fill="x", pady=3)
+
+        tb.Separator(frm_left).pack(fill="x", pady=6)
+
+        tb.Button(btns, text="📥 Importa Excel", bootstyle=PRIMARY, command=self.import_excel).pack(fill="x", pady=3)
+        tb.Button(btns, text="📤 Esporta Excel", bootstyle=PRIMARY, command=self.export_excel).pack(fill="x", pady=3)
+
+        # tabella a destra
+        right = tb.Frame(main)
+        right.pack(side="right", fill="both", expand=True)
+
+        self.tree = ttk.Treeview(right, columns=self.fields, show="headings", selectmode="browse")
+        for col in self.fields:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=120, anchor="w")
+        self.tree.pack(fill="both", expand=True, side="left")
+
+        vsb = ttk.Scrollbar(right, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=vsb.set)
+        vsb.pack(side="right", fill="y")
+
+        # colori righe alternate
+        self.tree.tag_configure('odd', background='#ffffff')
+        self.tree.tag_configure('even', background='#f7f9fb')
+
+        # eventi
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+
+        # carica dati iniziali
+        self.load_products()
+        self.populate_tree()
+
+    # ---------------- IMPORT / EXPORT EXCEL ----------------
+    def import_excel(self):
+        path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.read_excel(path)
+            self.products = df.to_dict(orient="records")
+            self.save_products()
+            self.populate_tree()
+            messagebox.showinfo("Import Excel", "Prodotti importati correttamente.")
+            if self.logger:
+                self.logger.log(f"Importati prodotti da {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante l'importazione Excel:\n{e}")
+
+    def export_excel(self):
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                            filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.DataFrame(self.products)
+            df.to_excel(path, index=False)
+            messagebox.showinfo("Export Excel", f"Prodotti esportati in {path}")
+            if self.logger:
+                self.logger.log(f"Esportati prodotti in {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante l'esportazione Excel:\n{e}")
+
+    # ---------------- CRUD ----------------
+    def add_prodotto(self):
+        data = {f: self.entries[f].get() for f in self.fields}
+        if not data["Codice"] or not data["Descrizione"]:
+            messagebox.showwarning("Attenzione", "Inserisci almeno Codice e Descrizione")
+            return
+        try:
+            data["Prezzo"] = float(data["Prezzo"].replace(",", "."))
+        except:
+            data["Prezzo"] = 0.0
+        self.products.append(data)
+        self.save_products()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Prodotto aggiunto: {data['Codice']} - {data['Descrizione']}")
+
+    def edit_prodotto(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona un prodotto da modificare")
+            return
+        index = self.tree.index(sel[0])
+        data = {f: self.entries[f].get() for f in self.fields}
+        try:
+            data["Prezzo"] = float(data["Prezzo"].replace(",", "."))
+        except:
+            data["Prezzo"] = 0.0
+        self.products[index] = data
+        self.save_products()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Prodotto modificato: {data['Codice']} - {data['Descrizione']}")
+
+    def del_prodotto(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona un prodotto da eliminare")
+            return
+        index = self.tree.index(sel[0])
+        prodotto = self.products.pop(index)
+        self.save_products()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Prodotto eliminato: {prodotto['Codice']} - {prodotto['Descrizione']}")
+
+    # ---------------- SUPPORTO ----------------
+    def clear_fields(self):
+        for f in self.fields:
+            self.entries[f].delete(0, tk.END)
+
+    def on_tree_select(self, event=None):
+        sel = self.tree.selection()
+        if not sel:
+            return
+        item = self.tree.item(sel[0])
+        values = item["values"]
+        for i, f in enumerate(self.fields):
+            self.entries[f].delete(0, tk.END)
+            if f == "Prezzo":
+                self.entries[f].insert(0, str(values[i]).replace(" €", ""))
+            else:
+                self.entries[f].insert(0, values[i])
+
+    def populate_tree(self):
+        self.tree.delete(*self.tree.get_children())
+        for i, p in enumerate(self.products):
+            values = [
+                p.get("Codice", ""),
+                p.get("Descrizione", ""),
+                f"{float(p.get('Prezzo', 0)):.2f} €",
+                p.get("Quantità", ""),
+                p.get("DataScadenza", ""),
+                p.get("Fornitore", "")
+            ]
+            tag = 'even' if i % 2 == 0 else 'odd'
+            self.tree.insert("", "end", values=values, tags=(tag,))
+
+    def load_products(self):
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.products = json.load(f)
+            # allinea vecchi record ai campi nuovi
+            for p in self.products:
+                for f in self.fields:
+                    if f not in p:
+                        p[f] = ""
+        else:
+            self.products = []
+
+    def save_products(self):
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(self.products, f, indent=2, ensure_ascii=False)
+
+
+ # Area CONSEGNE 
+
+from urllib.parse import quote  # metti questo import in cima al file
+
+
+class ConsegneFrame(tb.Frame):
+    def __init__(self, parent, logger=None, file_path="consegne.json"):
+        super().__init__(parent)
+        self.logger = logger
+        self.file_path = file_path
+        self.consegne = []
+
+        # campi principali
+        self.fields = ["Cliente", "Prodotto", "DataConsegna", "Quantità", "Comune", "Indirizzo"]
+
+        # titolo
+        title = tb.Label(self, text="🚚 Gestione Consegne", font=("Segoe UI", 20, "bold"))
+        title.pack(fill="x", pady=(8, 6))
+
+        main = tb.Frame(self)
+        main.pack(fill="both", expand=True, padx=10, pady=6)
+
+        # form a sinistra
+        frm_left = tb.Labelframe(main, text="Dati Consegna", padding=8, bootstyle=SECONDARY)
+        frm_left.pack(side="left", fill="y", padx=(0, 12))
+
+        self.entries = {}
+        for f in self.fields:
+            r = tb.Frame(frm_left)
+            r.pack(fill="x", pady=4)
+            tb.Label(r, text=f + ":", width=14, anchor="w").pack(side="left")
+            e = tb.Entry(r)
+            e.pack(side="left", fill="x", expand=True)
+            self.entries[f] = e
+
+        # pulsanti CRUD + Import/Export + Pianificazione
+        btns = tb.Frame(frm_left)
+        btns.pack(fill="x", pady=(8, 0))
+        tb.Button(btns, text="➕ Aggiungi", bootstyle=SUCCESS, command=self.add_consegna).pack(fill="x", pady=3)
+        tb.Button(btns, text="✏️ Modifica", bootstyle=INFO, command=self.edit_consegna).pack(fill="x", pady=3)
+        tb.Button(btns, text="🗑️ Elimina", bootstyle=DANGER, command=self.del_consegna).pack(fill="x", pady=3)
+        tb.Button(btns, text="🧹 Pulisci campi", bootstyle=SECONDARY, command=self.clear_fields).pack(fill="x", pady=3)
+
+        tb.Separator(frm_left).pack(fill="x", pady=6)
+
+        tb.Button(btns, text="📥 Importa Excel", bootstyle=PRIMARY, command=self.import_excel).pack(fill="x", pady=3)
+        tb.Button(btns, text="📤 Esporta Excel", bootstyle=PRIMARY, command=self.export_excel).pack(fill="x", pady=3)
+
+
+        # tabella a destra
+        right = tb.Frame(main)
+        right.pack(side="right", fill="both", expand=True)
+
+        self.tree = ttk.Treeview(right, columns=self.fields, show="headings", selectmode="browse")
+        for col in self.fields:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=120, anchor="w")
+        self.tree.pack(fill="both", expand=True, side="left")
+
+        vsb = ttk.Scrollbar(right, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=vsb.set)
+        vsb.pack(side="right", fill="y")
+
+        # colori righe alternate
+        self.tree.tag_configure('odd', background='#ffffff')
+        self.tree.tag_configure('even', background='#f7f9fb')
+
+        # eventi
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+        self.tree.bind("<Double-1>", self.on_double_click)
+
+        # carica dati iniziali
+        self.load_consegne()
+        self.populate_tree()
+
+    # ---------------- IMPORT / EXPORT EXCEL ----------------
+    def import_excel(self):
+        path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.read_excel(path)
+            self.consegne = df.to_dict(orient="records")
+            self.save_consegne()
+            self.populate_tree()
+            messagebox.showinfo("Import Excel", "Consegne importate correttamente.")
+            if self.logger:
+                self.logger.log(f"Importate consegne da {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante l'importazione Excel:\n{e}")
+
+    def export_excel(self):
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                            filetypes=[("Excel files", "*.xlsx")])
+        if not path:
+            return
+        try:
+            df = pd.DataFrame(self.consegne)
+            df.to_excel(path, index=False)
+            messagebox.showinfo("Export Excel", f"Consegne esportate in {path}")
+            if self.logger:
+                self.logger.log(f"Esportate consegne in {path}")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante l'esportazione Excel:\n{e}")
+
+    # ---------------- CRUD ----------------
+    def add_consegna(self):
+        data = {f: self.entries[f].get() for f in self.fields}
+        if not data["Cliente"] or not data["Prodotto"]:
+            messagebox.showwarning("Attenzione", "Inserisci almeno Cliente e Prodotto")
+            return
+        self.consegne.append(data)
+        self.save_consegne()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Consegna aggiunta: {data['Cliente']} - {data['Prodotto']}")
+
+    def edit_consegna(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona una consegna da modificare")
+            return
+        index = self.tree.index(sel[0])
+        data = {f: self.entries[f].get() for f in self.fields}
+        self.consegne[index] = data
+        self.save_consegne()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Consegna modificata: {data['Cliente']} - {data['Prodotto']}")
+
+    def del_consegna(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Attenzione", "Seleziona una consegna da eliminare")
+            return
+        index = self.tree.index(sel[0])
+        consegna = self.consegne.pop(index)
+        self.save_consegne()
+        self.populate_tree()
+        self.clear_fields()
+        if self.logger:
+            self.logger.log(f"Consegna eliminata: {consegna['Cliente']} - {consegna['Prodotto']}")
+
+    # ---------------- SUPPORTO ----------------
+    def clear_fields(self):
+        for f in self.fields:
+            self.entries[f].delete(0, tk.END)
+
+    def on_tree_select(self, event=None):
+        sel = self.tree.selection()
+        if not sel:
+            return
+        item = self.tree.item(sel[0])
+        values = item["values"]
+        for i, f in enumerate(self.fields):
+            self.entries[f].delete(0, tk.END)
+            self.entries[f].insert(0, values[i])
+
+    def on_double_click(self, event):
+        sel = self.tree.selection()
+        if not sel:
+            return
+        col = self.tree.identify_column(event.x)
+        col_index = int(col.replace("#", "")) - 1
+        if self.fields[col_index] in ("Comune", "Indirizzo"):
+            item = self.tree.item(sel[0])
+            comune = item["values"][self.fields.index("Comune")]
+            indirizzo = item["values"][self.fields.index("Indirizzo")]
+            query = f"{indirizzo}, {comune}"
+            url = f"https://www.google.com/maps/search/{query.replace(' ', '+')}"
+            webbrowser.open(url)
+
+    def pianifica_consegne(self):
+        data = simpledialog.askstring("Pianifica consegne", "Quando andrai in consegna? (formato AAAA-MM-GG)")
+        if not data:
+            return
+
+        partenza = simpledialog.askstring("Pianifica consegne", "Da che comune parte la consegna?")
+        if not partenza:
+            return
+
+        consegne_filtrate = [c for c in self.consegne if c.get("DataConsegna") == data]
+        if not consegne_filtrate:
+            messagebox.showinfo("Nessuna consegna", f"Nessuna consegna trovata per il {data}")
+            return
+
+        tappe = [f"{c['Indirizzo']}, {c['Comune']}" for c in consegne_filtrate]
+
+        # codifica URL con quote
+        partenza_enc = quote(partenza)
+        tappe_enc = [quote(t) for t in tappe]
+
+        url = f"https://www.google.com/maps/dir/{partenza_enc}/" + "/".join(tappe_enc)
+        webbrowser.open(url)
+
+        if self.logger:
+            self.logger.log(f"Pianificate consegne del {data} da {partenza}")
+
+    def populate_tree(self):
+        self.tree.delete(*self.tree.get_children())
+        for i, c in enumerate(self.consegne):
+            values = [c.get(f, "") for f in self.fields]
+            tag = 'even' if i % 2 == 0 else 'odd'
+            self.tree.insert("", "end", values=values, tags=(tag,))
+
+    def load_consegne(self):
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.consegne = json.load(f)
+            for c in self.consegne:
+                for f in self.fields:
+                    if f not in c:
+                        c[f] = ""
+        else:
+            self.consegne = []
+
+    def save_consegne(self):
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(self.consegne, f, indent=2, ensure_ascii=False)
+
+
+
 
 
 class MainApp(tb.Window):
     def __init__(self):
-        super().__init__(themename="darkly")  # altri temi: "cosmo", "solar", "flatly", "cyborg"...
+        super().__init__(themename="flatly")  # 👈 qui si imposta il tema
         self.title("Archivio aziendale – Produzione Varutti Gabriele – Vietata la copia")
         self.geometry("1100x750")
         self.resizable(True, True)
@@ -1462,7 +2165,8 @@ class MainApp(tb.Window):
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
         self.frames["Fatture"] = FattureFrame(container, self.archivio_fatture, self.logger)
         self.frames["Clienti"] = ClientiFrame(container, self.logger)
-
+        self.frames["Prodotti"] = ProdottiFrame(container, self.logger)
+        self.frames["Consegne"] = ConsegneFrame(container, self.logger)
 
         # Nascondi tutti i frame
         for frame in self.frames.values():
