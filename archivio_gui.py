@@ -17,6 +17,10 @@ import webbrowser
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from tkinter import ttk
+import os
+import json
+from tkinter import messagebox
+
 
 
 # ============================================================
@@ -39,6 +43,9 @@ FILE_STOCCAGGIO = "stoccaggio.json"
 FILE_BACKUP = "backup.zip"
 FILE_FATTURE = "fatture.json"
 FILE_PRODUZIONE = "produzione.json"
+
+
+
 
 def set_style(root):
     style = ttk.Style(root)
@@ -2109,18 +2116,183 @@ class ConsegneFrame(tb.Frame):
         with open(self.file_path, "w", encoding="utf-8") as f:
             json.dump(self.consegne, f, indent=2, ensure_ascii=False)
 
+class AssistenteFrame(tb.Frame):
+    def __init__(self, parent, logger=None):
+        super().__init__(parent)
+        self.logger = logger
+        self.expanded = None  # tiene traccia della sezione espansa
+
+        # titolo
+        title = tb.Label(self, text="🤖 Assistente Intelligente", font=("Segoe UI", 20, "bold"))
+        title.pack(fill="x", pady=(8, 6))
+
+        # barra di ricerca
+        search_frame = tb.Frame(self)
+        search_frame.pack(fill="x", pady=6, padx=8)
+
+        self.search_var = tk.StringVar()
+        entry = tb.Entry(search_frame, textvariable=self.search_var, width=80)
+        entry.pack(side="left", padx=(0, 6), fill="x", expand=True)
+        entry.bind("<Return>", self.search)
+
+        tb.Button(search_frame, text="🔍 Cerca", bootstyle=INFO, command=self.search).pack(side="left")
+
+        # contenitore
+        self.container = tb.Frame(self)
+        self.container.pack(fill="both", expand=True, padx=8, pady=6)
+        self.container.grid_columnconfigure(0, weight=1)
+
+        # sezioni
+        self.sections = {}
+        self.section_frames = {}
+        self.buttons = {}
+
+        labels = ["CLIENTI", "PRODOTTI", "CONSEGNE", "STOCCAGGIO"]
+
+        for i, label in enumerate(labels):
+            lf = tb.Labelframe(self.container, text=label, padding=8, bootstyle=INFO)
+            lf.grid(row=i, column=0, sticky="nsew", padx=6, pady=6)
+
+            lf.grid_rowconfigure(0, weight=1)
+            lf.grid_columnconfigure(0, weight=1)
+
+            tree = ttk.Treeview(lf, show="headings", height=6)  # 👈 base più alta
+            tree.grid(row=0, column=0, sticky="nsew")
+
+            vsb = ttk.Scrollbar(lf, orient="vertical", command=tree.yview)
+            tree.configure(yscroll=vsb.set)
+            vsb.grid(row=0, column=1, sticky="ns")
+
+            # pulsante espandi/comprimi
+            btn = tb.Button(lf, text="⤵ Espandi", bootstyle=SECONDARY,
+                            command=lambda l=label: self.toggle_section(l))
+            btn.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+
+            # colonna placeholder
+            tree["columns"] = ["Attesa"]
+            tree.heading("Attesa", text="In attesa di ricerca...")
+            tree.column("Attesa", width=400, anchor="center")
+            tree.insert("", "end", values=["—"])
+
+            self.sections[label] = tree
+            self.section_frames[label] = lf
+            self.buttons[label] = btn
+
+        # layout iniziale con pesi uguali
+        for i in range(len(labels)):
+            self.container.grid_rowconfigure(i, weight=1)
+
+    def toggle_section(self, label):
+        """Espande o comprime la sezione scelta"""
+        if self.expanded == label:
+            # già espansa → comprime e torna normale
+            for i, lf in enumerate(self.section_frames.values()):
+                lf.grid(row=i, column=0, sticky="nsew", padx=6, pady=6)
+                self.container.grid_rowconfigure(i, weight=1)
+                self.buttons[list(self.section_frames.keys())[i]].config(text="⤵ Espandi")
+            self.expanded = None
+        else:
+            # espande solo quella
+            for lf in self.section_frames.values():
+                lf.grid_remove()
+            lf = self.section_frames[label]
+            lf.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+            self.container.grid_rowconfigure(0, weight=3)  # 👈 più grande
+            self.buttons[label].config(text="⬆ Comprimi")
+            self.expanded = label
+
+    def search(self, event=None):
+        query = self.search_var.get().lower().strip()
+        if not query:
+            messagebox.showwarning("Attenzione", "Inserisci uno o più termini da cercare")
+            return
+
+        terms = query.split()  # 👈 multi-parola attiva
+
+        file_map = {
+            "CLIENTI": FILE_CLIENTI,
+            "PRODOTTI": FILE_PRODOTTI,
+            "CONSEGNE": FILE_CONSEGNE,
+            "STOCCAGGIO": "stoccaggio.json",
+        }
+
+        for label, file_path in file_map.items():
+            tree = self.sections[label]
+            tree.delete(*tree.get_children())
+
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    try:
+                        dati = json.load(f)
+                        matches = []
+                        for d in dati:
+                            testo = " ".join(str(v).lower() for v in d.values())
+                            if all(term in testo for term in terms):  # 👈 TUTTE le parole
+                                matches.append(d)
+
+                        if matches:
+                            cols = list(matches[0].keys())
+                            tree["columns"] = cols
+                            for c in cols:
+                                tree.heading(c, text=c)
+                                tree.column(c, width=150, anchor="w")
+
+                            for m in matches:
+                                tree.insert("", "end", values=[m[c] for c in cols])
+                        else:
+                            tree["columns"] = ["Nessun risultato"]
+                            tree.heading("Nessun risultato", text="Nessun risultato")
+                            tree.column("Nessun risultato", width=400, anchor="center")
+                            tree.insert("", "end", values=["—"])
+
+                    except Exception as e:
+                        if self.logger:
+                            self.logger.log(f"Errore lettura {file_path}: {e}")
+            else:
+                tree["columns"] = ["File mancante"]
+                tree.heading("File mancante", text="File non trovato")
+                tree.column("File mancante", width=400, anchor="center")
+                tree.insert("", "end", values=["—"])
+
+        if self.logger:
+            self.logger.log(f"Assistente: ricerca '{query}' completata")
+
+
+           
 
 
 
+
+
+from ttkbootstrap.style import Style
 
 class MainApp(tb.Window):
     def __init__(self):
-        super().__init__(themename="flatly")  # 👈 qui si imposta il tema
+        super().__init__(themename="minty")
         self.title("Archivio aziendale – Produzione Varutti Gabriele – Vietata la copia")
         self.geometry("1100x750")
         self.resizable(True, True)
 
-        # Logger in basso (senza bootstyle, perché LoggerFrame non lo supporta)
+        # stile bootstrap
+        self.app_style = Style()
+        self.current_bootstyle = "info"
+
+        # 🎨 Menù in alto per temi e stili
+        menubar = tk.Menu(self)
+
+        theme_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="🎨 Tema", menu=theme_menu)
+        for t in ["flatly", "minty", "pulse", "darkly", "superhero", "forest"]:
+            theme_menu.add_command(label=t, command=lambda th=t: self.change_theme(th))
+
+        style_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="🖌️ Stile", menu=style_menu)
+        for s in ["info", "success", "danger", "secondary", "warning"]:
+            style_menu.add_command(label=s, command=lambda st=s: self.change_bootstyle(st))
+
+        self.config(menu=menubar)
+
+        # Logger in basso
         self.logger = LoggerFrame(self)
         self.logger.pack(side="bottom", fill="x")
 
@@ -2146,27 +2318,56 @@ class MainApp(tb.Window):
         # Mostra primo frame
         self.show_frame("Clienti")
 
+    # 🔹 Cambia tema globale
+    def change_theme(self, theme_name):
+        if theme_name == "forest":
+            # 🎨 Palette personalizzata FOREST
+            forest_palette = {
+                "primary": "#2e7d32",     # verde foresta
+                "secondary": "#81c784",   # verde chiaro
+                "success": "#388e3c",     # verde scuro
+                "info": "#4caf50",        # verde medio
+                "warning": "#fbc02d",     # giallo sole
+                "danger": "#d32f2f",      # rosso allarme
+                "light": "#e8f5e9",       # sfondo verde chiaro
+                "dark": "#1b5e20"         # verde molto scuro
+            }
+
+            # Applica i colori
+            for role, color in forest_palette.items():
+                self.app_style.colors.update({role: color})
+
+            # Forziamo a usare una base chiara
+            self.app_style.theme_use("flatly")
+
+            if self.logger:
+                self.logger.log("🌲 Tema cambiato in: forest (verde natura)")
+        else:
+            self.app_style.theme_use(theme_name)
+            if self.logger:
+                self.logger.log(f"🎨 Tema cambiato in: {theme_name}")
+
+    # 🔹 Cambia stile bottoni
+    def change_bootstyle(self, bootstyle):
+        self.current_bootstyle = bootstyle
+        for child in self.menu_frame.winfo_children():
+            if isinstance(child, tb.Button):
+                child.configure(bootstyle=bootstyle)
+        if self.logger:
+            self.logger.log(f"🖌️ Stile cambiato in: {bootstyle}")
+
     def init_frames(self, container):
         """Inizializza tutti i frame"""
-        self.frames["Clienti"] = BaseDataFrame(container, FILE_CLIENTI,
-            ["Nome", "Cognome", "Telefono", "Email", "P.IVA", "Indirizzo", "Comune"], self.logger)
-
-        self.frames["Prodotti"] = BaseDataFrame(container, FILE_PRODOTTI,
-            ["Codice", "Descrizione", "Prezzo", "Quantità", "Data di Scadenza", "Fornitore"], self.logger)
-
-        self.frames["Consegne"] = BaseDataFrame(container, FILE_CONSEGNE,
-            ["Cliente", "Prodotto", "Data Consegna", "Quantità", "Comune e indirizzo",
-             "Pagato si o no?", "Prezzo"], self.logger)
-
+        self.frames["Clienti"] = ClientiFrame(container, self.logger)
+        self.frames["Prodotti"] = ProdottiFrame(container, self.logger)
+        self.frames["Consegne"] = ConsegneFrame(container, self.logger)
         self.frames["Produzione"] = ProduzioneFrame(container, FILE_PRODUZIONE, self.logger)
         self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Stoccaggio"] = StoccaggioFrame(container, self.logger)
         self.frames["Backup"] = BackupFrame(container, self.logger)
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
         self.frames["Fatture"] = FattureFrame(container, self.archivio_fatture, self.logger)
-        self.frames["Clienti"] = ClientiFrame(container, self.logger)
-        self.frames["Prodotti"] = ProdottiFrame(container, self.logger)
-        self.frames["Consegne"] = ConsegneFrame(container, self.logger)
+        self.frames["Assistente"] = AssistenteFrame(container, self.logger)
 
         # Nascondi tutti i frame
         for frame in self.frames.values():
@@ -2174,7 +2375,7 @@ class MainApp(tb.Window):
             frame.lower()
 
     def create_menu_buttons(self):
-        """Crea i pulsanti del menu laterale con icone ed effetto hover"""
+        """Crea i pulsanti del menu laterale"""
         btns = [
             ("Clienti", "👥"),
             ("Prodotti", "📦"),
@@ -2184,6 +2385,7 @@ class MainApp(tb.Window):
             ("Backup", "💾"),
             ("Etichette", "🏷️"),
             ("Fatture", "🧾"),
+            ("Assistente", "🤖"),
             ("Produzione", "🏭")
         ]
 
@@ -2191,7 +2393,7 @@ class MainApp(tb.Window):
             btn = tb.Button(
                 self.menu_frame,
                 text=f"{emoji} {name}",
-                bootstyle=INFO,  # colore moderno
+                bootstyle=self.current_bootstyle,
                 width=18,
                 command=lambda n=name: self.show_frame(n)
             )
@@ -2209,4 +2411,3 @@ class MainApp(tb.Window):
 if __name__ == "__main__":
     app = MainApp()
     app.mainloop()
-    
