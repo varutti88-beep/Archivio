@@ -46,6 +46,23 @@ FILE_PRODUZIONE = "produzione.json"
 
 
 
+def open_whatsapp(self, client):
+    telefono = str(client.get("Telefono", "")).strip()
+    if not telefono:
+        messagebox.showwarning("Attenzione", "Nessun numero di telefono disponibile per questo cliente.")
+        return
+
+    numero = telefono.replace(" ", "").replace("-", "").replace("+", "")
+    if numero.startswith("0"):  # se l'utente ha scritto 0333... aggiungo prefisso Italia
+        numero = "39" + numero.lstrip("0")
+
+    messaggio = "Ciao, ti contatto dal gestionale"
+    url = f"https://wa.me/{numero}?text={quote(messaggio)}"
+
+    webbrowser.open(url)
+    if self.logger:
+        self.logger.log(f"💬 Aperto WhatsApp Web per {telefono}")
+
 
 def set_style(root):
     style = ttk.Style(root)
@@ -629,7 +646,7 @@ class StoccaggioFrame(tb.Frame):
         self.stoccaggi = []
 
         # campi principali
-        self.fields = ["Descrizione", "DataProduzione", "DataScadenza", "Lotto", "NumeroScatola"]
+        self.fields = ["Descrizione", "DataProduzione", "DataScadenza", "Lotto", "NumeroID"]
 
         # titolo
         title = tb.Label(self, text="📦 Gestione Stoccaggio", font=("Segoe UI", 20, "bold"))
@@ -1064,130 +1081,6 @@ class EtichetteFrame(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Errore", f"Errore durante la stampa:\n{e}")
 
-class ProduzioneFrame(ttk.Frame):
-    def __init__(self, parent, file_path, logger=None):
-        super().__init__(parent)
-        self.file_path = file_path
-        self.logger = logger
-        self.data = []
-        self.filtered_data = []
-        self.current_selection_index = None
-
-        self._create_widgets()
-        self.load_data()
-        self.refresh_tree()
-
-    def _create_widgets(self):
-        # Form inserimento
-        frm_form = ttk.Frame(self)
-        frm_form.pack(fill="x", padx=10, pady=10)
-
-        self.entries = {}
-        fields = ["Cliente", "Lavoro", "Data Inizio", "Data Fine Prevista", "Quantità Totale", "Quantità Completata"]
-        for i, col in enumerate(fields):
-            ttk.Label(frm_form, text=col + ":", font=FONT_NORMAL).grid(row=i, column=0, sticky="w", pady=4)
-            ent = ttk.Entry(frm_form, font=FONT_NORMAL)
-            ent.grid(row=i, column=1, sticky="ew", pady=4)
-            self.entries[col] = ent
-        frm_form.columnconfigure(1, weight=1)
-
-        # Pulsanti
-        frm_buttons = ttk.Frame(self)
-        frm_buttons.pack(fill="x", padx=10, pady=5)
-        ttk.Button(frm_buttons, text="Aggiungi", command=self.add_record).pack(side="left", padx=5)
-        ttk.Button(frm_buttons, text="Modifica", command=self.edit_record).pack(side="left", padx=5)
-        ttk.Button(frm_buttons, text="Elimina", command=self.delete_record).pack(side="left", padx=5)
-
-        # Tabella
-        self.tree = ttk.Treeview(
-            self,
-            columns=["Cliente", "Lavoro", "Data Inizio", "Data Fine Prevista", "Quantità Totale", "Quantità Completata", "Avanzamento"],
-            show="headings",
-            selectmode="browse",
-            height=12
-        )
-        for col in ["Cliente", "Lavoro", "Data Inizio", "Data Fine Prevista", "Quantità Totale", "Quantità Completata", "Avanzamento"]:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, anchor="center", width=120)
-        self.tree.pack(expand=True, fill="both", padx=10, pady=10)
-        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
-
-        # Stile Progressbar moderna
-        style = ttk.Style(self)
-        style.theme_use("default")
-        style.configure("green.Horizontal.TProgressbar", troughcolor="#E0E0E0", bordercolor="#E0E0E0",
-                        background="#4CAF50", lightcolor="#4CAF50", darkcolor="#388E3C")
-
-    def get_entries_data(self):
-        return {col: self.entries[col].get().strip() for col in self.entries}
-
-    def clear_entries(self):
-        for ent in self.entries.values():
-            ent.delete(0, tk.END)
-
-    def add_record(self):
-        self.data.append(self.get_entries_data())
-        self.save_data()
-        self.refresh_tree()
-        self.clear_entries()
-
-    def edit_record(self):
-        if self.current_selection_index is None:
-            return
-        self.data[self.current_selection_index] = self.get_entries_data()
-        self.save_data()
-        self.refresh_tree()
-        self.clear_entries()
-
-    def delete_record(self):
-        if self.current_selection_index is None:
-            return
-        del self.data[self.current_selection_index]
-        self.save_data()
-        self.refresh_tree()
-        self.clear_entries()
-
-    def load_data(self):
-        if os.path.exists(self.file_path):
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                self.data = json.load(f)
-        else:
-            self.data = []
-
-    def save_data(self):
-        with open(self.file_path, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, indent=2, ensure_ascii=False)
-
-    def refresh_tree(self):
-        self.tree.delete(*self.tree.get_children())
-        self.filtered_data = self.data
-        for item in self.filtered_data:
-            totale = int(item.get("Quantità Totale", 0) or 0)
-            completata = int(item.get("Quantità Completata", 0) or 0)
-            perc = int((completata / totale) * 100) if totale > 0 else 0
-
-            vals = [
-                item.get("Cliente", ""),
-                item.get("Lavoro", ""),
-                item.get("Data Inizio", ""),
-                item.get("Data Fine Prevista", ""),
-                totale,
-                completata,
-                f"{perc}%"
-            ]
-            self.tree.insert("", "end", values=vals)
-
-    def on_tree_select(self, _event):
-        selected = self.tree.selection()
-        if not selected:
-            self.current_selection_index = None
-            return
-        item = self.tree.item(selected[0])
-        values = item["values"]
-        self.current_selection_index = self.tree.index(selected[0])
-        for col, val in zip(self.entries.keys(), values):
-            self.entries[col].delete(0, tk.END)
-            self.entries[col].insert(0, val)
 
     # -------------------------
     # gl import li tengo qui perchè sto lavorando sul modulo clienti e mi va più comodo 
@@ -1206,6 +1099,9 @@ import subprocess
 import sys
 import win32api
 import win32print
+from urllib.parse import quote
+
+
 
 
 class ClientiFrame(tb.Frame):
@@ -1216,6 +1112,31 @@ class ClientiFrame(tb.Frame):
     - popup dettagli cliente (header azzurro, documenti, note editabili, extra)
     - documenti vengono copiati in una cartella locale per sicurezza
     """
+    def open_client_popup(self, client):
+        # ... tutto il codice della popup ...
+        for d in client.get("documenti", []):
+            docs_tree.insert(
+                "", "end",
+                values=(d.get("data", ""), d.get("nome", ""), d.get("formato", ""), d.get("path", ""))
+            )
+
+        # QUI FINISCE open_client_popup
+
+
+    def open_whatsapp(self, client):
+        telefono = str(client.get("Telefono", "")).strip()
+        if not telefono:
+            messagebox.showwarning("Attenzione", "Nessun numero di telefono disponibile per questo cliente.")
+            return
+
+        numero = telefono.replace(" ", "").replace("-", "").replace("+", "")
+        messaggio = "Ciao, ti contatto dal gestionale"
+        url = f"https://wa.me/{numero}?text={urllib.parse.quote(messaggio)}"
+
+        webbrowser.open(url)
+        if self.logger:
+            self.logger.log(f"💬 Aperto WhatsApp Web per {telefono}")
+
 
     def __init__(self, parent, logger=None, file_path="clienti.json", docs_folder="clienti_documenti"):
         super().__init__(parent)
@@ -1563,35 +1484,64 @@ class ClientiFrame(tb.Frame):
         # header azzurro
         header = tk.Frame(popup, bg="#0d6efd")
         header.pack(fill="x")
-        tk.Label(header, text=f"👤 {client.get('Nome','')} {client.get('Cognome','')}",
-                 font=("Segoe UI", 16, "bold"), fg="white", bg="#0d6efd").pack(side="left", padx=12, pady=12)
-        tk.Label(header, text=f"P.IVA: {client.get('P.IVA','')}", font=("Segoe UI", 10), fg="white", bg="#0d6efd")\
-            .pack(side="left", padx=8)
+        tk.Label(
+            header,
+            text=f"👤 {client.get('Nome','')} {client.get('Cognome','')}",
+            font=("Segoe UI", 16, "bold"),
+            fg="white",
+            bg="#0d6efd"
+        ).pack(side="left", padx=12, pady=12)
+
+        tk.Label(
+            header,
+            text=f"P.IVA: {client.get('P.IVA','')}",
+            font=("Segoe UI", 10),
+            fg="white",
+            bg="#0d6efd"
+        ).pack(side="left", padx=8)
 
         # pulsanti rapidi
         quick = tb.Frame(popup)
         quick.pack(fill="x", padx=10, pady=6)
-        tb.Button(quick, text="🌍 Maps", bootstyle=INFO,
-                  command=lambda: webbrowser.open("https://www.google.com/maps/search/" + f"{client.get('Indirizzo','')} {client.get('Comune','')}".replace(" ", "+"))
-                  ).pack(side="left", padx=6)
-        tb.Button(quick, text="✉️ Email", bootstyle=SUCCESS,
-                  command=lambda: webbrowser.open(f"mailto:{client.get('Email','')}")).pack(side="left", padx=6)
-        tb.Button(quick, text="📞 Telefono", bootstyle=WARNING,
-                  command=lambda: messagebox.showinfo("Telefono", f"Chiama: {client.get('Telefono','')}")).pack(side="left", padx=6)
+
+        tb.Button(
+            quick, text="🌍 Maps", bootstyle=INFO,
+            command=lambda: webbrowser.open(
+                "https://www.google.com/maps/search/" +
+                f"{client.get('Indirizzo','')} {client.get('Comune','')}".replace(" ", "+"))
+        ).pack(side="left", padx=6)
+
+        tb.Button(
+            quick, text="✉️ Email", bootstyle=SUCCESS,
+            command=lambda: webbrowser.open(f"mailto:{client.get('Email','')}")
+        ).pack(side="left", padx=6)
+
+        tb.Button(
+            quick, text="📞 Telefono", bootstyle=WARNING,
+            command=lambda: messagebox.showinfo("Telefono", f"Chiama: {client.get('Telefono','')}")
+        ).pack(side="left", padx=6)
+
+        tb.Button(
+            quick, text="💬 WhatsApp", bootstyle=SUCCESS,
+            command=lambda: self.open_whatsapp(client)
+        ).pack(side="left", padx=6)
 
         # notebook
         nb = tb.Notebook(popup)
         nb.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # --- Info tab (dati statici) ---
+        # --- Info tab ---
         tab_info = tb.Frame(nb)
         nb.add(tab_info, text="📋 Info")
         for r, col in enumerate(self.fields):
-            tb.Label(tab_info, text=f"{col}:", font=("Segoe UI", 10, "bold")).grid(row=r, column=0, sticky="w", padx=12, pady=6)
-            tb.Label(tab_info, text=client.get(col, ""), font=("Segoe UI", 10)).grid(row=r, column=1, sticky="w", padx=12, pady=6)
+            tb.Label(tab_info, text=f"{col}:", font=("Segoe UI", 10, "bold")).grid(
+                row=r, column=0, sticky="w", padx=12, pady=6
+            )
+            tb.Label(tab_info, text=client.get(col, ""), font=("Segoe UI", 10)).grid(
+                row=r, column=1, sticky="w", padx=12, pady=6
+            )
 
-                        # --- Documenti tab ---
-                # --- Documenti tab ---
+        # --- Documenti tab ---
         tab_docs = tb.Frame(nb)
         nb.add(tab_docs, text="📂 Documenti")
 
@@ -1606,9 +1556,7 @@ class ClientiFrame(tb.Frame):
         docs_tree.configure(yscroll=docs_sb.set)
         docs_sb.pack(side="right", fill="y")
 
-        # popola documenti
-        for d in client.get("documenti", []):
-            docs_tree.insert("", "end", values=(d.get("data", ""), d.get("nome", ""), d.get("formato", ""), d.get("path", "")))
+    
 
         # funzioni documenti
         def import_doc_local():
@@ -1892,9 +1840,10 @@ class ProdottiFrame(tb.Frame):
     def save_products(self):
         with open(self.file_path, "w", encoding="utf-8") as f:
             json.dump(self.products, f, indent=2, ensure_ascii=False)
+            
 
 
- # Area CONSEGNE 
+ # Area CONSEGNE --------------------------------------------------------------------------------------------
 
 from urllib.parse import quote  # metti questo import in cima al file
 
@@ -2116,6 +2065,8 @@ class ConsegneFrame(tb.Frame):
         with open(self.file_path, "w", encoding="utf-8") as f:
             json.dump(self.consegne, f, indent=2, ensure_ascii=False)
 
+# AREA ASSISTENTE-----------------------------------------------------------------------------------------------------            
+
 class AssistenteFrame(tb.Frame):
     def __init__(self, parent, logger=None):
         super().__init__(parent)
@@ -2137,7 +2088,7 @@ class AssistenteFrame(tb.Frame):
 
         tb.Button(search_frame, text="🔍 Cerca", bootstyle=INFO, command=self.search).pack(side="left")
 
-        # contenitore
+        # contenitore principale
         self.container = tb.Frame(self)
         self.container.pack(fill="both", expand=True, padx=8, pady=6)
         self.container.grid_columnconfigure(0, weight=1)
@@ -2156,23 +2107,30 @@ class AssistenteFrame(tb.Frame):
             lf.grid_rowconfigure(0, weight=1)
             lf.grid_columnconfigure(0, weight=1)
 
-            tree = ttk.Treeview(lf, show="headings", height=6)  # 👈 base più alta
+            # tree con doppia scrollbar
+            tree = ttk.Treeview(lf, show="headings", height=6)
             tree.grid(row=0, column=0, sticky="nsew")
 
             vsb = ttk.Scrollbar(lf, orient="vertical", command=tree.yview)
-            tree.configure(yscroll=vsb.set)
+            hsb = ttk.Scrollbar(lf, orient="horizontal", command=tree.xview)
+            tree.configure(yscroll=vsb.set, xscroll=hsb.set)
             vsb.grid(row=0, column=1, sticky="ns")
+            hsb.grid(row=1, column=0, sticky="ew")
 
             # pulsante espandi/comprimi
             btn = tb.Button(lf, text="⤵ Espandi", bootstyle=SECONDARY,
                             command=lambda l=label: self.toggle_section(l))
-            btn.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+            btn.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
             # colonna placeholder
             tree["columns"] = ["Attesa"]
             tree.heading("Attesa", text="In attesa di ricerca...")
             tree.column("Attesa", width=400, anchor="center")
             tree.insert("", "end", values=["—"])
+
+            # 🎯 evento speciale per consegne → Google Maps
+            if label == "CONSEGNE":
+                tree.bind("<Double-1>", self.open_maps)
 
             self.sections[label] = tree
             self.section_frames[label] = lf
@@ -2192,12 +2150,12 @@ class AssistenteFrame(tb.Frame):
                 self.buttons[list(self.section_frames.keys())[i]].config(text="⤵ Espandi")
             self.expanded = None
         else:
-            # espande solo quella
+            # espande solo quella → fullscreen
             for lf in self.section_frames.values():
                 lf.grid_remove()
             lf = self.section_frames[label]
             lf.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
-            self.container.grid_rowconfigure(0, weight=3)  # 👈 più grande
+            self.container.grid_rowconfigure(0, weight=5)  # 👈 fullscreen
             self.buttons[label].config(text="⬆ Comprimi")
             self.expanded = label
 
@@ -2237,8 +2195,14 @@ class AssistenteFrame(tb.Frame):
                                 tree.heading(c, text=c)
                                 tree.column(c, width=150, anchor="w")
 
-                            for m in matches:
-                                tree.insert("", "end", values=[m[c] for c in cols])
+                            for i, m in enumerate(matches):
+                                tag = "even" if i % 2 == 0 else "odd"
+                                tree.insert("", "end", values=[m[c] for c in cols], tags=(tag,))
+
+                            # colori righe alternate
+                            tree.tag_configure("odd", background="#f7f9fb")
+                            tree.tag_configure("even", background="#ffffff")
+
                         else:
                             tree["columns"] = ["Nessun risultato"]
                             tree.heading("Nessun risultato", text="Nessun risultato")
@@ -2257,40 +2221,42 @@ class AssistenteFrame(tb.Frame):
         if self.logger:
             self.logger.log(f"Assistente: ricerca '{query}' completata")
 
+    def open_maps(self, event):
+        """Doppio clic su consegna → apre indirizzo su Google Maps"""
+        sel = self.sections["CONSEGNE"].selection()
+        if not sel:
+            return
+        item = self.sections["CONSEGNE"].item(sel[0])
+        values = item["values"]
+        cols = self.sections["CONSEGNE"]["columns"]
 
-           
+        try:
+            if "Comune" in cols and "Indirizzo" in cols:
+                comune = values[cols.index("Comune")]
+                indirizzo = values[cols.index("Indirizzo")]
+                query = f"{indirizzo}, {comune}"
+                url = f"https://www.google.com/maps/search/{query.replace(' ', '+')}"
+                webbrowser.open(url)
+        except Exception as e:
+            if self.logger:
+                self.logger.log(f"Errore apertura Maps: {e}")
 
 
 
-
-
-from ttkbootstrap.style import Style
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+from tkinter import ttk
 
 class MainApp(tb.Window):
     def __init__(self):
-        super().__init__(themename="minty")
+        # 👇 parte sempre con flatly
+        super().__init__(themename="flatly")
         self.title("Archivio aziendale – Produzione Varutti Gabriele – Vietata la copia")
-        self.geometry("1100x750")
+        self.geometry("1200x800")
         self.resizable(True, True)
+        
+        print("Tema attivo:", self.style.theme.name)
 
-        # stile bootstrap
-        self.app_style = Style()
-        self.current_bootstyle = "info"
-
-        # 🎨 Menù in alto per temi e stili
-        menubar = tk.Menu(self)
-
-        theme_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="🎨 Tema", menu=theme_menu)
-        for t in ["flatly", "minty", "pulse", "darkly", "superhero", "forest"]:
-            theme_menu.add_command(label=t, command=lambda th=t: self.change_theme(th))
-
-        style_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="🖌️ Stile", menu=style_menu)
-        for s in ["info", "success", "danger", "secondary", "warning"]:
-            style_menu.add_command(label=s, command=lambda st=s: self.change_bootstyle(st))
-
-        self.config(menu=menubar)
 
         # Logger in basso
         self.logger = LoggerFrame(self)
@@ -2312,58 +2278,19 @@ class MainApp(tb.Window):
         self.frames = {}
         self.init_frames(container)
 
-        # Bottoni menu
+        # Bottoni menu (in stile info)
         self.create_menu_buttons()
 
         # Mostra primo frame
         self.show_frame("Clienti")
-
-    # 🔹 Cambia tema globale
-    def change_theme(self, theme_name):
-        if theme_name == "forest":
-            # 🎨 Palette personalizzata FOREST
-            forest_palette = {
-                "primary": "#2e7d32",     # verde foresta
-                "secondary": "#81c784",   # verde chiaro
-                "success": "#388e3c",     # verde scuro
-                "info": "#4caf50",        # verde medio
-                "warning": "#fbc02d",     # giallo sole
-                "danger": "#d32f2f",      # rosso allarme
-                "light": "#e8f5e9",       # sfondo verde chiaro
-                "dark": "#1b5e20"         # verde molto scuro
-            }
-
-            # Applica i colori
-            for role, color in forest_palette.items():
-                self.app_style.colors.update({role: color})
-
-            # Forziamo a usare una base chiara
-            self.app_style.theme_use("flatly")
-
-            if self.logger:
-                self.logger.log("🌲 Tema cambiato in: forest (verde natura)")
-        else:
-            self.app_style.theme_use(theme_name)
-            if self.logger:
-                self.logger.log(f"🎨 Tema cambiato in: {theme_name}")
-
-    # 🔹 Cambia stile bottoni
-    def change_bootstyle(self, bootstyle):
-        self.current_bootstyle = bootstyle
-        for child in self.menu_frame.winfo_children():
-            if isinstance(child, tb.Button):
-                child.configure(bootstyle=bootstyle)
-        if self.logger:
-            self.logger.log(f"🖌️ Stile cambiato in: {bootstyle}")
 
     def init_frames(self, container):
         """Inizializza tutti i frame"""
         self.frames["Clienti"] = ClientiFrame(container, self.logger)
         self.frames["Prodotti"] = ProdottiFrame(container, self.logger)
         self.frames["Consegne"] = ConsegneFrame(container, self.logger)
-        self.frames["Produzione"] = ProduzioneFrame(container, FILE_PRODUZIONE, self.logger)
-        self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Stoccaggio"] = StoccaggioFrame(container, self.logger)
+        self.frames["Note"] = NoteFrame(container, self.logger)
         self.frames["Backup"] = BackupFrame(container, self.logger)
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
         self.frames["Fatture"] = FattureFrame(container, self.archivio_fatture, self.logger)
@@ -2385,15 +2312,14 @@ class MainApp(tb.Window):
             ("Backup", "💾"),
             ("Etichette", "🏷️"),
             ("Fatture", "🧾"),
-            ("Assistente", "🤖"),
-            ("Produzione", "🏭")
+            ("Assistente", "🤖")
         ]
 
         for name, emoji in btns:
             btn = tb.Button(
                 self.menu_frame,
                 text=f"{emoji} {name}",
-                bootstyle=self.current_bootstyle,
+                bootstyle=INFO,   # 👈 stile coerente
                 width=18,
                 command=lambda n=name: self.show_frame(n)
             )

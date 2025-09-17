@@ -1,1 +1,402 @@
-[]
+[
+  {
+    "Codice": "PRD0001",
+    "Descrizione": "Petto Pollo 1kg",
+    "Prezzo": 127.18,
+    "Quantità": 286,
+    "DataScadenza": "2028-05-20",
+    "Fornitore": "Import Export SRL"
+  },
+  {
+    "Codice": "PRD0002",
+    "Descrizione": "Biscotti Secchi",
+    "Prezzo": 97.62,
+    "Quantità": 440,
+    "DataScadenza": "2027-01-27",
+    "Fornitore": "Import Export SRL"
+  },
+  {
+    "Codice": "PRD0003",
+    "Descrizione": "Carne Bovino 500g",
+    "Prezzo": 141.61,
+    "Quantità": 333,
+    "DataScadenza": "2028-02-11",
+    "Fornitore": "Forniture Italia"
+  },
+  {
+    "Codice": "PRD0004",
+    "Descrizione": "Pizza Surgelata 350g",
+    "Prezzo": 183.86,
+    "Quantità": 249,
+    "DataScadenza": "2028-03-10",
+    "Fornitore": "GoodSupply"
+  },
+  {
+    "Codice": "PRD0005",
+    "Descrizione": "Formaggio Grattugiato 200g",
+    "Prezzo": 159.87,
+    "Quantità": 146,
+    "DataScadenza": "2026-12-29",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0006",
+    "Descrizione": "Carne Bovino 500g",
+    "Prezzo": 103.81,
+    "Quantità": 147,
+    "DataScadenza": "2027-10-04",
+    "Fornitore": "Semplice Fornitura"
+  },
+  {
+    "Codice": "PRD0007",
+    "Descrizione": "Shampoo 300ml",
+    "Prezzo": 100.89,
+    "Quantità": 111,
+    "DataScadenza": "2027-12-19",
+    "Fornitore": "Prodotti Freschi SAS"
+  },
+  {
+    "Codice": "PRD0008",
+    "Descrizione": "Latte UHT 1L",
+    "Prezzo": 185.08,
+    "Quantità": 39,
+    "DataScadenza": "2025-11-27",
+    "Fornitore": "Semplice Fornitura"
+  },
+  {
+    "Codice": "PRD0009",
+    "Descrizione": "Detersivo Lavatrice 2L",
+    "Prezzo": 5.3,
+    "Quantità": 329,
+    "DataScadenza": "2027-03-05",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0010",
+    "Descrizione": "Riso Arborio",
+    "Prezzo": 65.79,
+    "Quantità": 428,
+    "DataScadenza": "2027-11-24",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0011",
+    "Descrizione": "Acqua Minerale 1.5L",
+    "Prezzo": 2.88,
+    "Quantità": 414,
+    "DataScadenza": "2027-11-05",
+    "Fornitore": "GoodSupply"
+  },
+  {
+    "Codice": "PRD0012",
+    "Descrizione": "Olio Extra Vergine 750ml",
+    "Prezzo": 94.68,
+    "Quantità": 195,
+    "DataScadenza": "2027-05-25",
+    "Fornitore": "La Bottega del Gusto"
+  },
+  {
+    "Codice": "PRD0013",
+    "Descrizione": "Tè Nero 20 Bustine",
+    "Prezzo": 91.64,
+    "Quantità": 159,
+    "DataScadenza": "2026-11-23",
+    "Fornitore": "Import Export SRL"
+  },
+  {
+    "Codice": "PRD0014",
+    "Descrizione": "Gelato 500ml",
+    "Prezzo": 190.47,
+    "Quantità": 396,
+    "DataScadenza": "2025-11-05",
+    "Fornitore": "Gruppo Alimentare Srl"
+  },
+  {
+    "Codice": "PRD0015",
+    "Descrizione": "Burro 250g",
+    "Prezzo": 112.4,
+    "Quantità": 278,
+    "DataScadenza": "2026-05-21",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0016",
+    "Descrizione": "Marmellata Fragola 370g",
+    "Prezzo": 55.45,
+    "Quantità": 438,
+    "DataScadenza": "2027-09-10",
+    "Fornitore": "La Bottega del Gusto"
+  },
+  {
+    "Codice": "PRD0017",
+    "Descrizione": "Deodorante Spray 150ml",
+    "Prezzo": 8.15,
+    "Quantità": 357,
+    "DataScadenza": "2027-05-17",
+    "Fornitore": "GoodSupply"
+  },
+  {
+    "Codice": "PRD0018",
+    "Descrizione": "Pepe Nero 40g",
+    "Prezzo": 58.54,
+    "Quantità": 226,
+    "DataScadenza": "2027-08-06",
+    "Fornitore": "Europa Food"
+  },
+  {
+    "Codice": "PRD0019",
+    "Descrizione": "Latte UHT 1L",
+    "Prezzo": 138.48,
+    "Quantità": 137,
+    "DataScadenza": "2026-07-30",
+    "Fornitore": "Europa Food"
+  },
+  {
+    "Codice": "PRD0020",
+    "Descrizione": "Filetti di Pesce Surgelato 1kg",
+    "Prezzo": 52.26,
+    "Quantità": 351,
+    "DataScadenza": "2026-06-07",
+    "Fornitore": "La Bottega del Gusto"
+  },
+  {
+    "Codice": "PRD0021",
+    "Descrizione": "Riso Arborio",
+    "Prezzo": 75.94,
+    "Quantità": 55,
+    "DataScadenza": "2026-10-20",
+    "Fornitore": "Grossista Nord"
+  },
+  {
+    "Codice": "PRD0022",
+    "Descrizione": "Succo ACE 1L",
+    "Prezzo": 163.92,
+    "Quantità": 415,
+    "DataScadenza": "2026-10-24",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0023",
+    "Descrizione": "Vino Rosso 750ml",
+    "Prezzo": 110.07,
+    "Quantità": 393,
+    "DataScadenza": "2026-02-08",
+    "Fornitore": "GoodSupply"
+  },
+  {
+    "Codice": "PRD0024",
+    "Descrizione": "Tonno in Scatola 80g",
+    "Prezzo": 59.66,
+    "Quantità": 164,
+    "DataScadenza": "2026-04-16",
+    "Fornitore": "Gruppo Alimentare Srl"
+  },
+  {
+    "Codice": "PRD0025",
+    "Descrizione": "Latte in Polvere 400g",
+    "Prezzo": 172.3,
+    "Quantità": 440,
+    "DataScadenza": "2026-07-10",
+    "Fornitore": "Gruppo Alimentare Srl"
+  },
+  {
+    "Codice": "PRD0026",
+    "Descrizione": "Verdure Surgelate 1kg",
+    "Prezzo": 25.09,
+    "Quantità": 477,
+    "DataScadenza": "2026-02-25",
+    "Fornitore": "Prodotti Freschi SAS"
+  },
+  {
+    "Codice": "PRD0027",
+    "Descrizione": "Deodorante Spray 150ml",
+    "Prezzo": 49.34,
+    "Quantità": 77,
+    "DataScadenza": "2027-01-18",
+    "Fornitore": "Europa Food"
+  },
+  {
+    "Codice": "PRD0028",
+    "Descrizione": "Burro 250g",
+    "Prezzo": 128.17,
+    "Quantità": 298,
+    "DataScadenza": "2026-05-31",
+    "Fornitore": "GoodSupply"
+  },
+  {
+    "Codice": "PRD0029",
+    "Descrizione": "Pannolini Taglia 3",
+    "Prezzo": 33.3,
+    "Quantità": 72,
+    "DataScadenza": "2028-02-14",
+    "Fornitore": "Gruppo Alimentare Srl"
+  },
+  {
+    "Codice": "PRD0030",
+    "Descrizione": "Caffè Macinato 250g",
+    "Prezzo": 73.09,
+    "Quantità": 359,
+    "DataScadenza": "2027-08-12",
+    "Fornitore": "La Bottega del Gusto"
+  },
+  {
+    "Codice": "PRD0031",
+    "Descrizione": "Gelato 500ml",
+    "Prezzo": 100.52,
+    "Quantità": 446,
+    "DataScadenza": "2027-07-27",
+    "Fornitore": "Grossista Nord"
+  },
+  {
+    "Codice": "PRD0032",
+    "Descrizione": "Deodorante Spray 150ml",
+    "Prezzo": 137.67,
+    "Quantità": 41,
+    "DataScadenza": "2027-06-27",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0033",
+    "Descrizione": "Petto Pollo 1kg",
+    "Prezzo": 5.86,
+    "Quantità": 429,
+    "DataScadenza": "2027-12-12",
+    "Fornitore": "Import Export SRL"
+  },
+  {
+    "Codice": "PRD0034",
+    "Descrizione": "Pizza Surgelata 350g",
+    "Prezzo": 12.77,
+    "Quantità": 31,
+    "DataScadenza": "2028-01-07",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0035",
+    "Descrizione": "Bicarbonato 200g",
+    "Prezzo": 170.9,
+    "Quantità": 117,
+    "DataScadenza": "2025-12-13",
+    "Fornitore": "Gruppo Alimentare Srl"
+  },
+  {
+    "Codice": "PRD0036",
+    "Descrizione": "Cereali 375g",
+    "Prezzo": 159.17,
+    "Quantità": 302,
+    "DataScadenza": "2027-12-11",
+    "Fornitore": "Semplice Fornitura"
+  },
+  {
+    "Codice": "PRD0037",
+    "Descrizione": "Filetti di Pesce Surgelato 1kg",
+    "Prezzo": 176.78,
+    "Quantità": 173,
+    "DataScadenza": "2026-02-20",
+    "Fornitore": "Semplice Fornitura"
+  },
+  {
+    "Codice": "PRD0038",
+    "Descrizione": "Fagioli in Scatola 400g",
+    "Prezzo": 194.79,
+    "Quantità": 434,
+    "DataScadenza": "2027-02-08",
+    "Fornitore": "Grossista Nord"
+  },
+  {
+    "Codice": "PRD0039",
+    "Descrizione": "Aceto Balsamico 250ml",
+    "Prezzo": 7.0,
+    "Quantità": 102,
+    "DataScadenza": "2027-06-29",
+    "Fornitore": "Gruppo Alimentare Srl"
+  },
+  {
+    "Codice": "PRD0040",
+    "Descrizione": "Birra Lager 330ml",
+    "Prezzo": 56.5,
+    "Quantità": 343,
+    "DataScadenza": "2026-08-19",
+    "Fornitore": "Semplice Fornitura"
+  },
+  {
+    "Codice": "PRD0041",
+    "Descrizione": "Pasta Integrale",
+    "Prezzo": 4.87,
+    "Quantità": 196,
+    "DataScadenza": "2027-02-22",
+    "Fornitore": "Forniture Italia"
+  },
+  {
+    "Codice": "PRD0042",
+    "Descrizione": "Riso Arborio",
+    "Prezzo": 134.06,
+    "Quantità": 131,
+    "DataScadenza": "2026-04-07",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0043",
+    "Descrizione": "Gelato 500ml",
+    "Prezzo": 169.39,
+    "Quantità": 404,
+    "DataScadenza": "2026-05-25",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0044",
+    "Descrizione": "Succo Bio 200ml",
+    "Prezzo": 94.68,
+    "Quantità": 282,
+    "DataScadenza": "2026-01-07",
+    "Fornitore": "Distribuzioni Locali"
+  },
+  {
+    "Codice": "PRD0045",
+    "Descrizione": "Carne Bovino 500g",
+    "Prezzo": 150.06,
+    "Quantità": 376,
+    "DataScadenza": "2027-03-17",
+    "Fornitore": "GoodSupply"
+  },
+  {
+    "Codice": "PRD0046",
+    "Descrizione": "Bicarbonato 200g",
+    "Prezzo": 55.63,
+    "Quantità": 388,
+    "DataScadenza": "2027-04-07",
+    "Fornitore": "Semplice Fornitura"
+  },
+  {
+    "Codice": "PRD0047",
+    "Descrizione": "Deodorante Spray 150ml",
+    "Prezzo": 81.53,
+    "Quantità": 403,
+    "DataScadenza": "2026-02-21",
+    "Fornitore": "La Bottega del Gusto"
+  },
+  {
+    "Codice": "PRD0048",
+    "Descrizione": "Patatine Classiche 150g",
+    "Prezzo": 183.62,
+    "Quantità": 162,
+    "DataScadenza": "2025-12-22",
+    "Fornitore": "Europa Food"
+  },
+  {
+    "Codice": "PRD0049",
+    "Descrizione": "Carta Igienica 4rotoli",
+    "Prezzo": 121.93,
+    "Quantità": 8,
+    "DataScadenza": "2028-02-14",
+    "Fornitore": "La Bottega del Gusto"
+  },
+  {
+    "Codice": "PRD0050",
+    "Descrizione": "Acqua Minerale 1.5L",
+    "Prezzo": 110.54,
+    "Quantità": 404,
+    "DataScadenza": "2028-05-30",
+    "Fornitore": "Import Export SRL"
+  }
+]

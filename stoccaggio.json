@@ -1,1 +1,352 @@
-[]
+[
+  {
+    "Descrizione": "Deodorante",
+    "DataProduzione": "2025-05-31",
+    "DataScadenza": "2026-03-30",
+    "Lotto": "L0001",
+    "NumeroID": 1000
+  },
+  {
+    "Descrizione": "Cioccolato",
+    "DataProduzione": "2025-01-17",
+    "DataScadenza": "2026-08-08",
+    "Lotto": "L0002",
+    "NumeroID": 1001
+  },
+  {
+    "Descrizione": "Carne Pollo",
+    "DataProduzione": "2025-04-03",
+    "DataScadenza": "2025-12-20",
+    "Lotto": "L0003",
+    "NumeroID": 1002
+  },
+  {
+    "Descrizione": "Birra",
+    "DataProduzione": "2025-08-12",
+    "DataScadenza": "2027-05-15",
+    "Lotto": "L0004",
+    "NumeroID": 1003
+  },
+  {
+    "Descrizione": "Olio d'Oliva",
+    "DataProduzione": "2025-07-06",
+    "DataScadenza": "2027-03-10",
+    "Lotto": "L0005",
+    "NumeroID": 1004
+  },
+  {
+    "Descrizione": "Acqua Minerale",
+    "DataProduzione": "2025-04-14",
+    "DataScadenza": "2025-12-19",
+    "Lotto": "L0006",
+    "NumeroID": 1005
+  },
+  {
+    "Descrizione": "Farina",
+    "DataProduzione": "2025-03-19",
+    "DataScadenza": "2026-10-01",
+    "Lotto": "L0007",
+    "NumeroID": 1006
+  },
+  {
+    "Descrizione": "Tonno in Scatola",
+    "DataProduzione": "2025-05-29",
+    "DataScadenza": "2026-05-29",
+    "Lotto": "L0008",
+    "NumeroID": 1007
+  },
+  {
+    "Descrizione": "Cioccolato",
+    "DataProduzione": "2025-08-06",
+    "DataScadenza": "2027-03-18",
+    "Lotto": "L0009",
+    "NumeroID": 1008
+  },
+  {
+    "Descrizione": "Tè",
+    "DataProduzione": "2025-04-03",
+    "DataScadenza": "2026-08-24",
+    "Lotto": "L0010",
+    "NumeroID": 1009
+  },
+  {
+    "Descrizione": "Deodorante",
+    "DataProduzione": "2025-03-10",
+    "DataScadenza": "2026-05-19",
+    "Lotto": "L0011",
+    "NumeroID": 1010
+  },
+  {
+    "Descrizione": "Zucchero",
+    "DataProduzione": "2025-06-27",
+    "DataScadenza": "2026-10-15",
+    "Lotto": "L0012",
+    "NumeroID": 1011
+  },
+  {
+    "Descrizione": "Bibita Gassata",
+    "DataProduzione": "2025-07-27",
+    "DataScadenza": "2026-06-28",
+    "Lotto": "L0013",
+    "NumeroID": 1012
+  },
+  {
+    "Descrizione": "Pannolini",
+    "DataProduzione": "2025-07-09",
+    "DataScadenza": "2026-03-17",
+    "Lotto": "L0014",
+    "NumeroID": 1013
+  },
+  {
+    "Descrizione": "Miele",
+    "DataProduzione": "2025-07-27",
+    "DataScadenza": "2026-12-17",
+    "Lotto": "L0015",
+    "NumeroID": 1014
+  },
+  {
+    "Descrizione": "Caffè",
+    "DataProduzione": "2025-08-07",
+    "DataScadenza": "2027-07-02",
+    "Lotto": "L0016",
+    "NumeroID": 1015
+  },
+  {
+    "Descrizione": "Bibita Gassata",
+    "DataProduzione": "2025-03-11",
+    "DataScadenza": "2025-12-13",
+    "Lotto": "L0017",
+    "NumeroID": 1016
+  },
+  {
+    "Descrizione": "Farina",
+    "DataProduzione": "2025-05-12",
+    "DataScadenza": "2026-05-16",
+    "Lotto": "L0018",
+    "NumeroID": 1017
+  },
+  {
+    "Descrizione": "Snack",
+    "DataProduzione": "2025-06-15",
+    "DataScadenza": "2026-09-11",
+    "Lotto": "L0019",
+    "NumeroID": 1018
+  },
+  {
+    "Descrizione": "Yogurt",
+    "DataProduzione": "2025-06-18",
+    "DataScadenza": "2026-10-03",
+    "Lotto": "L0020",
+    "NumeroID": 1019
+  },
+  {
+    "Descrizione": "Gelato",
+    "DataProduzione": "2025-08-24",
+    "DataScadenza": "2026-11-02",
+    "Lotto": "L0021",
+    "NumeroID": 1020
+  },
+  {
+    "Descrizione": "Legumi",
+    "DataProduzione": "2025-07-31",
+    "DataScadenza": "2026-02-19",
+    "Lotto": "L0022",
+    "NumeroID": 1021
+  },
+  {
+    "Descrizione": "Assorbenti",
+    "DataProduzione": "2025-01-13",
+    "DataScadenza": "2025-09-03",
+    "Lotto": "L0023",
+    "NumeroID": 1022
+  },
+  {
+    "Descrizione": "Biscotti",
+    "DataProduzione": "2025-07-27",
+    "DataScadenza": "2027-07-01",
+    "Lotto": "L0024",
+    "NumeroID": 1023
+  },
+  {
+    "Descrizione": "Olio d'Oliva",
+    "DataProduzione": "2025-07-25",
+    "DataScadenza": "2027-04-28",
+    "Lotto": "L0025",
+    "NumeroID": 1024
+  },
+  {
+    "Descrizione": "Carne Bovino",
+    "DataProduzione": "2025-06-07",
+    "DataScadenza": "2026-07-25",
+    "Lotto": "L0026",
+    "NumeroID": 1025
+  },
+  {
+    "Descrizione": "Carne Pollo",
+    "DataProduzione": "2025-03-13",
+    "DataScadenza": "2026-01-12",
+    "Lotto": "L0027",
+    "NumeroID": 1026
+  },
+  {
+    "Descrizione": "Patatine",
+    "DataProduzione": "2025-08-08",
+    "DataScadenza": "2026-12-04",
+    "Lotto": "L0028",
+    "NumeroID": 1027
+  },
+  {
+    "Descrizione": "Deodorante",
+    "DataProduzione": "2025-02-08",
+    "DataScadenza": "2026-03-16",
+    "Lotto": "L0029",
+    "NumeroID": 1028
+  },
+  {
+    "Descrizione": "Bicarbonato",
+    "DataProduzione": "2025-08-19",
+    "DataScadenza": "2026-04-06",
+    "Lotto": "L0030",
+    "NumeroID": 1029
+  },
+  {
+    "Descrizione": "Olio d'Oliva",
+    "DataProduzione": "2025-03-24",
+    "DataScadenza": "2026-11-27",
+    "Lotto": "L0031",
+    "NumeroID": 1030
+  },
+  {
+    "Descrizione": "Shampoo",
+    "DataProduzione": "2025-07-09",
+    "DataScadenza": "2026-11-17",
+    "Lotto": "L0032",
+    "NumeroID": 1031
+  },
+  {
+    "Descrizione": "Pane",
+    "DataProduzione": "2025-04-29",
+    "DataScadenza": "2026-12-31",
+    "Lotto": "L0033",
+    "NumeroID": 1032
+  },
+  {
+    "Descrizione": "Pesce Surgelato",
+    "DataProduzione": "2025-06-08",
+    "DataScadenza": "2026-05-02",
+    "Lotto": "L0034",
+    "NumeroID": 1033
+  },
+  {
+    "Descrizione": "Carne Pollo",
+    "DataProduzione": "2025-05-05",
+    "DataScadenza": "2026-08-23",
+    "Lotto": "L0035",
+    "NumeroID": 1034
+  },
+  {
+    "Descrizione": "Olio d'Oliva",
+    "DataProduzione": "2025-07-22",
+    "DataScadenza": "2027-01-25",
+    "Lotto": "L0036",
+    "NumeroID": 1035
+  },
+  {
+    "Descrizione": "Acqua Minerale",
+    "DataProduzione": "2025-05-30",
+    "DataScadenza": "2026-08-16",
+    "Lotto": "L0037",
+    "NumeroID": 1036
+  },
+  {
+    "Descrizione": "Biscotti",
+    "DataProduzione": "2025-07-23",
+    "DataScadenza": "2026-10-21",
+    "Lotto": "L0038",
+    "NumeroID": 1037
+  },
+  {
+    "Descrizione": "Pizza Surgelata",
+    "DataProduzione": "2025-08-19",
+    "DataScadenza": "2027-04-17",
+    "Lotto": "L0039",
+    "NumeroID": 1038
+  },
+  {
+    "Descrizione": "Vino",
+    "DataProduzione": "2025-05-01",
+    "DataScadenza": "2026-07-21",
+    "Lotto": "L0040",
+    "NumeroID": 1039
+  },
+  {
+    "Descrizione": "Sapone",
+    "DataProduzione": "2025-04-16",
+    "DataScadenza": "2026-05-02",
+    "Lotto": "L0041",
+    "NumeroID": 1040
+  },
+  {
+    "Descrizione": "Assorbenti",
+    "DataProduzione": "2025-02-05",
+    "DataScadenza": "2026-01-16",
+    "Lotto": "L0042",
+    "NumeroID": 1041
+  },
+  {
+    "Descrizione": "Spezie",
+    "DataProduzione": "2025-07-26",
+    "DataScadenza": "2027-07-09",
+    "Lotto": "L0043",
+    "NumeroID": 1042
+  },
+  {
+    "Descrizione": "Shampoo",
+    "DataProduzione": "2025-03-30",
+    "DataScadenza": "2026-02-08",
+    "Lotto": "L0044",
+    "NumeroID": 1043
+  },
+  {
+    "Descrizione": "Carta Igienica",
+    "DataProduzione": "2025-07-29",
+    "DataScadenza": "2026-02-06",
+    "Lotto": "L0045",
+    "NumeroID": 1044
+  },
+  {
+    "Descrizione": "Farina",
+    "DataProduzione": "2025-01-06",
+    "DataScadenza": "2026-03-14",
+    "Lotto": "L0046",
+    "NumeroID": 1045
+  },
+  {
+    "Descrizione": "Riso",
+    "DataProduzione": "2025-08-03",
+    "DataScadenza": "2026-11-21",
+    "Lotto": "L0047",
+    "NumeroID": 1046
+  },
+  {
+    "Descrizione": "Acqua Minerale",
+    "DataProduzione": "2025-08-20",
+    "DataScadenza": "2026-09-10",
+    "Lotto": "L0048",
+    "NumeroID": 1047
+  },
+  {
+    "Descrizione": "Miele",
+    "DataProduzione": "2025-04-09",
+    "DataScadenza": "2025-11-22",
+    "Lotto": "L0049",
+    "NumeroID": 1048
+  },
+  {
+    "Descrizione": "Succo di Frutta",
+    "DataProduzione": "2025-05-17",
+    "DataScadenza": "2025-12-22",
+    "Lotto": "L0050",
+    "NumeroID": 1049
+  }
+]
