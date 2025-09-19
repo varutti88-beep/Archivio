@@ -1676,31 +1676,5 @@
     "documenti": [],
     "note": [],
     "extra": []
-  },
-  {
-    "id": 32,
-    "Nome": "Sara",
-    "Cognome": "Verdi",
-    "Telefono": "3803866154",
-    "Email": "sara.verdi@mail.com",
-    "P.IVA": "IT606893",
-    "Indirizzo": "Via Roma 8",
-    "Comune": "Udine",
-    "documenti": [],
-    "note": [],
-    "extra": []
-  },
-  {
-    "id": 82,
-    "Nome": "Sara",
-    "Cognome": "Verdi",
-    "Telefono": "3803866154",
-    "Email": "sara.verdi@mail.com",
-    "P.IVA": "IT606893",
-    "Indirizzo": "Via Roma 8",
-    "Comune": "Udine",
-    "documenti": [],
-    "note": [],
-    "extra": []
   }
 ]

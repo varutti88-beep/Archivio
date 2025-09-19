@@ -82,8 +82,8 @@
   {
     "Codice": "PRD0011",
     "Descrizione": "Acqua Minerale 1.5L",
-    "Prezzo": 2.88,
-    "Quantità": 414,
+    "Prezzo": 20000.0,
+    "Quantità": "414",
     "DataScadenza": "2027-11-05",
     "Fornitore": "GoodSupply"
   },
@@ -178,8 +178,8 @@
   {
     "Codice": "PRD0023",
     "Descrizione": "Vino Rosso 750ml",
-    "Prezzo": 110.07,
-    "Quantità": 393,
+    "Prezzo": 1.0,
+    "Quantità": "393",
     "DataScadenza": "2026-02-08",
     "Fornitore": "GoodSupply"
   },

@@ -5,15 +5,17 @@
     "DataConsegna": "2025-08-21",
     "Quantità": 8,
     "Comune": "Venezia",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Giulia Verdi",
     "Prodotto": "Latte UHT 1L",
     "DataConsegna": "2025-08-28",
-    "Quantità": 72,
+    "Quantità": "72",
     "Comune": "Milano",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": "5000000"
   },
   {
     "Cliente": "Michele Rizzi",
@@ -21,7 +23,8 @@
     "DataConsegna": "2025-10-07",
     "Quantità": 40,
     "Comune": "Roma",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   },
   {
     "Cliente": "Federico Costa",
@@ -29,7 +32,8 @@
     "DataConsegna": "2025-09-22",
     "Quantità": 38,
     "Comune": "Verona",
-    "Indirizzo": "Via Dante 45"
+    "Indirizzo": "Via Dante 45",
+    "Prezzo": ""
   },
   {
     "Cliente": "Davide Esposito",
@@ -37,15 +41,8 @@
     "DataConsegna": "2025-09-26",
     "Quantità": 98,
     "Comune": "Roma",
-    "Indirizzo": "Via Manzoni 77"
-  },
-  {
-    "Cliente": "Davide Esposito",
-    "Prodotto": "Pasta Integrale",
-    "DataConsegna": "2025-10-15",
-    "Quantità": 92,
-    "Comune": "Venezia",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Roberta Villa",
@@ -53,7 +50,8 @@
     "DataConsegna": "2025-09-09",
     "Quantità": 35,
     "Comune": "Torino",
-    "Indirizzo": "Viale Libertà 22"
+    "Indirizzo": "Viale Libertà 22",
+    "Prezzo": ""
   },
   {
     "Cliente": "Stefano Marchetti",
@@ -61,7 +59,8 @@
     "DataConsegna": "2025-09-25",
     "Quantità": 59,
     "Comune": "Verona",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Giulia Verdi",
@@ -69,15 +68,17 @@
     "DataConsegna": "2025-08-28",
     "Quantità": 83,
     "Comune": "Roma",
-    "Indirizzo": "Via Milano 18"
+    "Indirizzo": "Via Milano 18",
+    "Prezzo": ""
   },
   {
     "Cliente": "Paolo Greco",
     "Prodotto": "Biscotti Secchi",
     "DataConsegna": "2025-09-29",
-    "Quantità": 51,
+    "Quantità": "51",
     "Comune": "Trieste",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": "500000"
   },
   {
     "Cliente": "Silvia Colombo",
@@ -85,15 +86,17 @@
     "DataConsegna": "2025-09-26",
     "Quantità": 77,
     "Comune": "Bari",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   },
   {
     "Cliente": "Luca Bianchi",
     "Prodotto": "Pasta Integrale",
     "DataConsegna": "2025-09-15",
-    "Quantità": 17,
+    "Quantità": "17",
     "Comune": "Torino",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": "500"
   },
   {
     "Cliente": "Anna Conti",
@@ -101,7 +104,8 @@
     "DataConsegna": "2025-10-17",
     "Quantità": 73,
     "Comune": "Milano",
-    "Indirizzo": "Corso Vittorio Emanuele 55"
+    "Indirizzo": "Corso Vittorio Emanuele 55",
+    "Prezzo": ""
   },
   {
     "Cliente": "Chiara Romano",
@@ -109,7 +113,8 @@
     "DataConsegna": "2025-09-06",
     "Quantità": 78,
     "Comune": "Bari",
-    "Indirizzo": "Via Milano 18"
+    "Indirizzo": "Via Milano 18",
+    "Prezzo": ""
   },
   {
     "Cliente": "Francesca Neri",
@@ -117,7 +122,8 @@
     "DataConsegna": "2025-09-14",
     "Quantità": 80,
     "Comune": "Bologna",
-    "Indirizzo": "Corso Vittorio Emanuele 55"
+    "Indirizzo": "Corso Vittorio Emanuele 55",
+    "Prezzo": ""
   },
   {
     "Cliente": "Chiara Romano",
@@ -125,7 +131,8 @@
     "DataConsegna": "2025-08-30",
     "Quantità": 27,
     "Comune": "Trieste",
-    "Indirizzo": "Corso Vittorio Emanuele 55"
+    "Indirizzo": "Corso Vittorio Emanuele 55",
+    "Prezzo": ""
   },
   {
     "Cliente": "Giulia Verdi",
@@ -133,7 +140,8 @@
     "DataConsegna": "2025-09-12",
     "Quantità": 87,
     "Comune": "Palermo",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": ""
   },
   {
     "Cliente": "Luca Bianchi",
@@ -141,7 +149,8 @@
     "DataConsegna": "2025-09-02",
     "Quantità": 97,
     "Comune": "Milano",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   },
   {
     "Cliente": "Alessandro Gallo",
@@ -149,7 +158,8 @@
     "DataConsegna": "2025-10-05",
     "Quantità": 38,
     "Comune": "Bari",
-    "Indirizzo": "Piazza Garibaldi 5"
+    "Indirizzo": "Piazza Garibaldi 5",
+    "Prezzo": ""
   },
   {
     "Cliente": "Francesca Neri",
@@ -157,7 +167,8 @@
     "DataConsegna": "2025-08-29",
     "Quantità": 75,
     "Comune": "Trieste",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": ""
   },
   {
     "Cliente": "Stefano Marchetti",
@@ -165,7 +176,8 @@
     "DataConsegna": "2025-08-19",
     "Quantità": 1,
     "Comune": "Verona",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": ""
   },
   {
     "Cliente": "Davide Esposito",
@@ -173,7 +185,8 @@
     "DataConsegna": "2025-09-09",
     "Quantità": 77,
     "Comune": "Bologna",
-    "Indirizzo": "Via Dante 45"
+    "Indirizzo": "Via Dante 45",
+    "Prezzo": ""
   },
   {
     "Cliente": "Federico Costa",
@@ -181,7 +194,8 @@
     "DataConsegna": "2025-08-28",
     "Quantità": 46,
     "Comune": "Verona",
-    "Indirizzo": "Corso Vittorio Emanuele 55"
+    "Indirizzo": "Corso Vittorio Emanuele 55",
+    "Prezzo": ""
   },
   {
     "Cliente": "Paolo Greco",
@@ -189,7 +203,8 @@
     "DataConsegna": "2025-10-10",
     "Quantità": 44,
     "Comune": "Genova",
-    "Indirizzo": "Corso Italia 25"
+    "Indirizzo": "Corso Italia 25",
+    "Prezzo": ""
   },
   {
     "Cliente": "Paolo Greco",
@@ -197,7 +212,8 @@
     "DataConsegna": "2025-08-22",
     "Quantità": 88,
     "Comune": "Palermo",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Federico Costa",
@@ -205,7 +221,8 @@
     "DataConsegna": "2025-09-01",
     "Quantità": 10,
     "Comune": "Venezia",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   },
   {
     "Cliente": "Roberta Villa",
@@ -213,7 +230,8 @@
     "DataConsegna": "2025-08-31",
     "Quantità": 23,
     "Comune": "Bologna",
-    "Indirizzo": "Piazza Garibaldi 5"
+    "Indirizzo": "Piazza Garibaldi 5",
+    "Prezzo": ""
   },
   {
     "Cliente": "Chiara Romano",
@@ -221,7 +239,8 @@
     "DataConsegna": "2025-09-02",
     "Quantità": 23,
     "Comune": "Bari",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   },
   {
     "Cliente": "Alessandro Gallo",
@@ -229,7 +248,8 @@
     "DataConsegna": "2025-09-09",
     "Quantità": 44,
     "Comune": "Trieste",
-    "Indirizzo": "Piazza Garibaldi 5"
+    "Indirizzo": "Piazza Garibaldi 5",
+    "Prezzo": ""
   },
   {
     "Cliente": "Davide Esposito",
@@ -237,7 +257,8 @@
     "DataConsegna": "2025-09-10",
     "Quantità": 68,
     "Comune": "Verona",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Chiara Romano",
@@ -245,7 +266,8 @@
     "DataConsegna": "2025-09-15",
     "Quantità": 76,
     "Comune": "Milano",
-    "Indirizzo": "Piazza Duomo 1"
+    "Indirizzo": "Piazza Duomo 1",
+    "Prezzo": ""
   },
   {
     "Cliente": "Roberta Villa",
@@ -253,7 +275,8 @@
     "DataConsegna": "2025-09-11",
     "Quantità": 29,
     "Comune": "Genova",
-    "Indirizzo": "Viale Libertà 22"
+    "Indirizzo": "Viale Libertà 22",
+    "Prezzo": ""
   },
   {
     "Cliente": "Giulia Verdi",
@@ -261,7 +284,8 @@
     "DataConsegna": "2025-10-08",
     "Quantità": 80,
     "Comune": "Bologna",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": ""
   },
   {
     "Cliente": "Davide Esposito",
@@ -269,7 +293,8 @@
     "DataConsegna": "2025-09-26",
     "Quantità": 19,
     "Comune": "Trieste",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Michele Rizzi",
@@ -277,7 +302,8 @@
     "DataConsegna": "2025-10-12",
     "Quantità": 29,
     "Comune": "Venezia",
-    "Indirizzo": "Via Dante 45"
+    "Indirizzo": "Via Dante 45",
+    "Prezzo": ""
   },
   {
     "Cliente": "Laura Moretti",
@@ -285,7 +311,8 @@
     "DataConsegna": "2025-08-30",
     "Quantità": 43,
     "Comune": "Genova",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   },
   {
     "Cliente": "Davide Esposito",
@@ -293,7 +320,8 @@
     "DataConsegna": "2025-09-16",
     "Quantità": 74,
     "Comune": "Firenze",
-    "Indirizzo": "Piazza Garibaldi 5"
+    "Indirizzo": "Piazza Garibaldi 5",
+    "Prezzo": ""
   },
   {
     "Cliente": "Laura Moretti",
@@ -301,7 +329,8 @@
     "DataConsegna": "2025-09-03",
     "Quantità": 92,
     "Comune": "Padova",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Alessandro Gallo",
@@ -309,7 +338,8 @@
     "DataConsegna": "2025-08-24",
     "Quantità": 55,
     "Comune": "Padova",
-    "Indirizzo": "Piazza Garibaldi 5"
+    "Indirizzo": "Piazza Garibaldi 5",
+    "Prezzo": ""
   },
   {
     "Cliente": "Andrea Fiore",
@@ -317,7 +347,8 @@
     "DataConsegna": "2025-09-03",
     "Quantità": 51,
     "Comune": "Torino",
-    "Indirizzo": "Via Manzoni 77"
+    "Indirizzo": "Via Manzoni 77",
+    "Prezzo": ""
   },
   {
     "Cliente": "Giorgio Ferrara",
@@ -325,7 +356,8 @@
     "DataConsegna": "2025-08-22",
     "Quantità": 44,
     "Comune": "Verona",
-    "Indirizzo": "Via Milano 18"
+    "Indirizzo": "Via Milano 18",
+    "Prezzo": ""
   },
   {
     "Cliente": "Alessandro Gallo",
@@ -333,7 +365,8 @@
     "DataConsegna": "2025-09-06",
     "Quantità": 42,
     "Comune": "Trieste",
-    "Indirizzo": "Corso Vittorio Emanuele 55"
+    "Indirizzo": "Corso Vittorio Emanuele 55",
+    "Prezzo": ""
   },
   {
     "Cliente": "Martina De Luca",
@@ -341,7 +374,8 @@
     "DataConsegna": "2025-09-19",
     "Quantità": 47,
     "Comune": "Roma",
-    "Indirizzo": "Piazza Duomo 1"
+    "Indirizzo": "Piazza Duomo 1",
+    "Prezzo": ""
   },
   {
     "Cliente": "Paolo Greco",
@@ -349,7 +383,8 @@
     "DataConsegna": "2025-09-14",
     "Quantità": 34,
     "Comune": "Torino",
-    "Indirizzo": "Corso Vittorio Emanuele 55"
+    "Indirizzo": "Corso Vittorio Emanuele 55",
+    "Prezzo": ""
   },
   {
     "Cliente": "Giulia Verdi",
@@ -357,7 +392,8 @@
     "DataConsegna": "2025-09-28",
     "Quantità": 25,
     "Comune": "Roma",
-    "Indirizzo": "Via Milano 18"
+    "Indirizzo": "Via Milano 18",
+    "Prezzo": ""
   },
   {
     "Cliente": "Silvia Colombo",
@@ -365,7 +401,8 @@
     "DataConsegna": "2025-09-28",
     "Quantità": 63,
     "Comune": "Torino",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": ""
   },
   {
     "Cliente": "Paolo Greco",
@@ -373,7 +410,8 @@
     "DataConsegna": "2025-08-25",
     "Quantità": 52,
     "Comune": "Milano",
-    "Indirizzo": "Piazza Duomo 1"
+    "Indirizzo": "Piazza Duomo 1",
+    "Prezzo": ""
   },
   {
     "Cliente": "Valentina Puglisi",
@@ -381,7 +419,8 @@
     "DataConsegna": "2025-09-10",
     "Quantità": 10,
     "Comune": "Palermo",
-    "Indirizzo": "Piazza Duomo 1"
+    "Indirizzo": "Piazza Duomo 1",
+    "Prezzo": ""
   },
   {
     "Cliente": "Laura Moretti",
@@ -389,7 +428,8 @@
     "DataConsegna": "2025-09-04",
     "Quantità": 67,
     "Comune": "Trieste",
-    "Indirizzo": "Via Roma 10"
+    "Indirizzo": "Via Roma 10",
+    "Prezzo": ""
   },
   {
     "Cliente": "Elena Lombardi",
@@ -397,6 +437,7 @@
     "DataConsegna": "2025-09-26",
     "Quantità": 4,
     "Comune": "Bologna",
-    "Indirizzo": "Via Verdi 14"
+    "Indirizzo": "Via Verdi 14",
+    "Prezzo": ""
   }
 ]

@@ -136,6 +136,19 @@ class ArchivioFatture:
         conn.commit()
         conn.close()
 
+    def cerca_documenti(self, query):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, nome_file, tipo, data_importazione
+            FROM fatture
+            WHERE nome_file LIKE ? OR tipo LIKE ? OR data_importazione LIKE ?
+        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+    
+
     def importa_documento(self, file_path):
         if not os.path.exists(file_path):
             raise FileNotFoundError("File non trovato!")
@@ -646,7 +659,7 @@ class StoccaggioFrame(tb.Frame):
         self.stoccaggi = []
 
         # campi principali
-        self.fields = ["Descrizione", "DataProduzione", "DataScadenza", "Lotto", "NumeroID"]
+        self.fields = ["Descrizione", "DataProduzione", "DataScadenza", "Lotto", "NumeroScatola"]
 
         # titolo
         title = tb.Label(self, text="📦 Gestione Stoccaggio", font=("Segoe UI", 20, "bold"))
@@ -814,6 +827,16 @@ class StoccaggioFrame(tb.Frame):
             json.dump(self.stoccaggi, f, indent=2, ensure_ascii=False)
 
 
+import os
+import json
+import zipfile
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+from datetime import datetime
+
+# Assumo che FILE_CLIENTI, FILE_CONSEGNE, FILE_PRODOTTI, FILE_NOTE, FILE_STOCCAGGIO
+# siano definiti altrove nel progetto come nel tuo codice originale.
+
 class BackupFrame(ttk.Frame):
     def __init__(self, parent, logger=None):
         super().__init__(parent)
@@ -837,6 +860,10 @@ class BackupFrame(ttk.Frame):
 
         btn_cartella = ttk.Button(frm_buttons, text="📂 Scegli cartella backup", command=self.choose_folder)
         btn_cartella.pack(side="left", padx=5)
+
+        # NUOVO: Elimina backup selezionato
+        btn_delete = ttk.Button(frm_buttons, text="Elimina Backup Selezionato", command=self.delete_selected_backup)
+        btn_delete.pack(side="left", padx=5)
 
         # Intervallo backup
         frm_schedule = ttk.Frame(self)
@@ -862,6 +889,9 @@ class BackupFrame(ttk.Frame):
             self.tree.column(col, width=200 if col != "#" else 50, anchor="center")
         self.tree.pack(expand=True, fill="both", padx=10, pady=5)
 
+        # binding: tasto Delete elimina selezione
+        self.tree.bind("<Delete>", lambda e: self.delete_selected_backup())
+
         self.refresh_log()
 
         self.job = None  # per gestire il ciclo after()
@@ -869,8 +899,11 @@ class BackupFrame(ttk.Frame):
     # ---------------- CONFIG ----------------
     def load_config(self):
         if os.path.exists(self.config_file):
-            with open(self.config_file, "r", encoding="utf-8") as f:
-                self.config = json.load(f)
+            try:
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    self.config = json.load(f)
+            except Exception:
+                self.config = {"folder": os.getcwd(), "interval": 60}
         else:
             self.config = {"folder": os.getcwd(), "interval": 60}
 
@@ -881,8 +914,11 @@ class BackupFrame(ttk.Frame):
     # ---------------- LOG ----------------
     def load_log(self):
         if os.path.exists(self.log_file):
-            with open(self.log_file, "r", encoding="utf-8") as f:
-                self.log = json.load(f)
+            try:
+                with open(self.log_file, "r", encoding="utf-8") as f:
+                    self.log = json.load(f)
+            except Exception:
+                self.log = []
         else:
             self.log = []
 
@@ -893,7 +929,7 @@ class BackupFrame(ttk.Frame):
     def refresh_log(self):
         self.tree.delete(*self.tree.get_children())
         for idx, entry in enumerate(self.log, start=1):
-            self.tree.insert("", "end", values=(idx, entry["time"], entry["path"]))
+            self.tree.insert("", "end", values=(idx, entry.get("time", ""), entry.get("path", "")))
 
     def add_log(self, path):
         entry = {
@@ -918,8 +954,15 @@ class BackupFrame(ttk.Frame):
         path = os.path.join(folder, f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip")
         try:
             with zipfile.ZipFile(path, 'w') as backup_zip:
-                for file in [FILE_CLIENTI, FILE_CONSEGNE, FILE_PRODOTTI, FILE_NOTE, FILE_STOCCAGGIO]:
-                    if os.path.exists(file):
+                # prova a scrivere i file principali, salta quelli mancanti
+                files_to_add = []
+                try:
+                    files_to_add = [FILE_CLIENTI, FILE_CONSEGNE, FILE_PRODOTTI, FILE_NOTE, FILE_STOCCAGGIO]
+                except NameError:
+                    # se le costanti non esistono usa tutti i json nella cartella corrente come fallback
+                    files_to_add = [f for f in os.listdir(os.getcwd()) if f.lower().endswith(".json")]
+                for file in files_to_add:
+                    if file and os.path.exists(file):
                         backup_zip.write(file)
             self.lbl_status.config(text=f"Backup creato: {path}")
             self.add_log(path)  # 🔹 aggiungi allo storico
@@ -934,6 +977,7 @@ class BackupFrame(ttk.Frame):
             return
         try:
             with zipfile.ZipFile(path, 'r') as backup_zip:
+                # estrai in cartella corrente o chiedi folder? qui estrai nella cartella di lavoro
                 backup_zip.extractall()
             self.lbl_status.config(text=f"Backup importato da {path}")
             if self.logger:
@@ -942,9 +986,59 @@ class BackupFrame(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile importare backup.\n{e}")
 
+    # ---------------- ELIMINA BACKUP ----------------
+    def delete_selected_backup(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showinfo("Seleziona backup", "Seleziona prima un backup dallo storico.")
+            return
+        item = sel[0]
+        vals = self.tree.item(item, "values")
+        if not vals or len(vals) < 3:
+            messagebox.showerror("Errore", "Voce selezionata non valida.")
+            return
+        idx_str, time_str, path = vals[0], vals[1], vals[2]
+
+        ok = messagebox.askyesno("Conferma eliminazione", f"Eliminare il backup?\n\n{path}\n\nCreato: {time_str}")
+        if not ok:
+            return
+
+        try:
+            removed_disk = False
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    removed_disk = True
+                except Exception as e:
+                    messagebox.showwarning("Avviso", f"Impossibile eliminare il file dal disco:\n{e}\nRimuoverò comunque la voce dallo storico.")
+            else:
+                # file non presente: avvisiamo ma permettiamo di rimuovere la voce
+                messagebox.showinfo("File non trovato", "Il file di backup non è presente sul disco. Rimuoverò la voce dallo storico comunque.")
+
+            # rimuovo dalla lista log la voce corrispondente (match su time+path)
+            removed_from_log = False
+            for i, entry in enumerate(self.log):
+                if entry.get("time") == time_str and entry.get("path") == path:
+                    del self.log[i]
+                    removed_from_log = True
+                    break
+            if removed_from_log:
+                self.save_log()
+                self.refresh_log()
+
+            if self.logger:
+                msg = f"Backup rimosso: {path}"
+                if not removed_disk:
+                    msg += " (file non trovato o non eliminato)"
+                self.logger.log(msg)
+
+            messagebox.showinfo("Eliminazione completata", "Backup rimosso dallo storico." + ("" if removed_disk else " (file non trovato)"))
+        except Exception as e:
+            messagebox.showerror("Errore", f"Impossibile eliminare il backup:\n{e}")
+
     # ---------------- AUTO BACKUP ----------------
     def start_auto_backup(self):
-        interval_ms = self.var_interval.get() * 60 * 1000
+        interval_ms = max(1, int(self.var_interval.get())) * 60 * 1000
         self.config["interval"] = self.var_interval.get()
         self.save_config()
         self._schedule_backup(interval_ms)
@@ -959,6 +1053,7 @@ class BackupFrame(ttk.Frame):
             self.after_cancel(self.job)
             self.job = None
             self.lbl_status.config(text="Backup automatico fermato ⛔")
+
 
             
 
@@ -1856,7 +1951,7 @@ class ConsegneFrame(tb.Frame):
         self.consegne = []
 
         # campi principali
-        self.fields = ["Cliente", "Prodotto", "DataConsegna", "Quantità", "Comune", "Indirizzo"]
+        self.fields = ["Cliente", "Prodotto", "DataConsegna", "Quantità", "Comune", "Indirizzo", "Prezzo"]
 
         # titolo
         title = tb.Label(self, text="🚚 Gestione Consegne", font=("Segoe UI", 20, "bold"))
@@ -2241,6 +2336,111 @@ class AssistenteFrame(tb.Frame):
             if self.logger:
                 self.logger.log(f"Errore apertura Maps: {e}")
 
+import tkinter as tk
+from tkinter import ttk
+from statistiche_manager import StatisticheManager
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+
+
+class StatisticheFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent, padding=20)
+
+        self.stats = StatisticheManager()
+
+        # ---------- CONFIGURAZIONE LAYOUT ----------
+        self.grid_rowconfigure(2, weight=1)   # grafico espandibile
+        self.grid_columnconfigure(0, weight=1)
+
+        # ---------- TITOLO ----------
+        titolo = ttk.Label(
+            self,
+            text="📊 Dashboard Statistiche Generali",
+            font=("Segoe UI", 18, "bold")
+        )
+        titolo.grid(row=0, column=0, pady=(0, 15), sticky="n")
+
+        # ---------- CARDS ----------
+        self.cards_frame = ttk.Frame(self)
+        self.cards_frame.grid(row=1, column=0, pady=10, sticky="ew")
+
+        self.cards = {}
+        nomi_stats = [
+            "Totale Clienti",
+            "Totale Spesa Prodotti",
+            "Totale Guadagno Consegne",
+            "Totale Merce in Stoccaggio"
+        ]
+
+        for i, nome in enumerate(nomi_stats):
+            frame = ttk.Frame(self.cards_frame, relief="ridge", padding=10)
+            frame.grid(row=0, column=i, padx=10, sticky="nsew")
+
+            lbl_title = ttk.Label(frame, text=nome, font=("Segoe UI", 11, "bold"))
+            lbl_title.pack(anchor="center")
+
+            lbl_value = ttk.Label(frame, text="0", font=("Segoe UI", 14))
+            lbl_value.pack(anchor="center", pady=4)
+
+            self.cards[nome] = lbl_value
+            self.cards_frame.grid_columnconfigure(i, weight=1)
+
+        # ---------- GRAFICO ----------
+        self.graphs_frame = ttk.Frame(self)
+        self.graphs_frame.grid(row=2, column=0, sticky="nsew", pady=20)
+
+        self.fig, self.ax = plt.subplots(figsize=(8, 4))
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.graphs_frame)
+        self.canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        # ---------- BOTTONE REFRESH ----------
+        btn = ttk.Button(self, text="🔄 Aggiorna Riepilogo", command=self.aggiorna_riepilogo)
+        btn.grid(row=3, column=0, pady=10)
+
+        # ---------- PRIMO CARICAMENTO ----------
+        self.aggiorna_riepilogo()
+
+    def aggiorna_riepilogo(self):
+        # Ricarico i file
+        self.stats.clienti = self.stats._load_json(self.stats.file_clienti)
+        self.stats.prodotti = self.stats._load_json(self.stats.file_prodotti)
+        self.stats.consegne = self.stats._load_json(self.stats.file_consegne)
+        self.stats.stoccaggio = self.stats._load_json(self.stats.file_stoccaggio)
+
+        riepilogo = self.stats.riepilogo()
+
+        # Aggiorna valori nelle cards
+        for k, v in riepilogo.items():
+            if k in self.cards:
+                self.cards[k].config(text=v)
+
+        # Aggiorna grafico a colonne
+        self.ax.clear()
+
+        valori = [
+            self.stats.totale_clienti(),
+            self.stats.totale_spesa_prodotti(),
+            self.stats.totale_guadagno_consegne(),
+            self.stats.totale_stoccaggio(),
+        ]
+        etichette = ["Clienti", "Spesa Prodotti", "Guadagni Consegne", "Stoccaggio"]
+
+        self.ax.bar(etichette, valori, color=["#3498db", "#e67e22", "#2ecc71", "#9b59b6"])
+        self.ax.set_title("Valori Attuali", fontsize=12)
+        self.ax.tick_params(axis="x", rotation=15)
+
+        self.fig.tight_layout()
+        self.canvas.draw()
+
+
+
+
+
+
+
+
 
 
 import ttkbootstrap as tb
@@ -2295,6 +2495,8 @@ class MainApp(tb.Window):
         self.frames["Etichette"] = EtichetteFrame(container, self.logger)
         self.frames["Fatture"] = FattureFrame(container, self.archivio_fatture, self.logger)
         self.frames["Assistente"] = AssistenteFrame(container, self.logger)
+        self.frames["Statistiche"] = StatisticheFrame(container)
+
 
         # Nascondi tutti i frame
         for frame in self.frames.values():
@@ -2312,6 +2514,7 @@ class MainApp(tb.Window):
             ("Backup", "💾"),
             ("Etichette", "🏷️"),
             ("Fatture", "🧾"),
+            ("Statistiche", "📊"),
             ("Assistente", "🤖")
         ]
 
